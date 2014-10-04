@@ -8,6 +8,7 @@ const Tweener = imports.ui.tweener;
 const Panel = imports.ui.panel;
 const PopupMenu = imports.ui.popupMenu;
 const Meta = imports.gi.Meta;
+const Settings = imports.ui.settings;
 const Tooltips = imports.ui.tooltips;
 const DND = imports.ui.dnd;
 const Mainloop = imports.mainloop;
@@ -264,8 +265,83 @@ AppMenuButtonRightClickMenu.prototype = {
 
 };
 
-function AppMenuButton(applet, metaWindow, animation, orientation, panel_height, draggable) {
-    this._init(applet, metaWindow, animation, orientation, panel_height, draggable);
+function WindowPreviewMenu(button, orientation, settings){
+    this._init(button, orientation, settings);
+}
+
+WindowPreviewMenu.prototype = {
+	__proto__: PopupMenu.PopupMenu.prototype,
+    _init: function(button, orientation, settings){
+		try {
+			PopupMenu.PopupMenu.prototype._init.call(this, button.actor, 0.0, orientation, 0);
+			Main.uiGroup.add_actor(this.actor);
+			this.actor.hide();
+
+			this._parentActor = button.actor;
+			this.metaWindow = button.metaWindow;
+			this.orientation = orientation;
+			this.rightClickMenu = button.rightClickMenu;
+
+			this.timeout = null;
+
+			this._parentActor.connect("enter-event", Lang.bind(this, function(){
+				if(!this.rightClickMenu.isOpen) this.timeout = Mainloop.timeout_add(this.settings.previewdelay, this.show.bind(this));
+			}));
+			this._parentActor.connect("leave-event", this.hide.bind(this));
+
+			this.settings = settings;
+
+			this.container = new PopupMenu.PopupBaseMenuItem();
+			this.thumbnailBin = new St.Bin();
+			this.container.addActor(this.thumbnailBin);
+			this.addMenuItem(this.container);
+		} catch(e){
+			global.logError(e);
+		}
+    },
+
+    _refreshDisplay: function(open){
+			try {
+				let mutterWindow = this.metaWindow.get_compositor_private();
+				if (mutterWindow){
+					let windowTexture = mutterWindow.get_texture();
+					let [width, height] = windowTexture.get_size();
+					let scale = Math.min(1.0, this.settings.previewwidth / width, this.settings.previewheight / height);
+					this.windowThumbnail = new Clutter.Clone({ source: windowTexture,
+						reactive: true,
+						width: Math.floor(width * scale),
+						height: Math.floor(height * scale)});
+					this.thumbnailBin.set_child(this.windowThumbnail);
+				}
+			} catch(e){
+				global.logError(e);
+			}
+    },
+
+    show: function(){
+		if(this.rightClickMenu.isOpen) return;
+		this.timeout = null;
+		this.open(true);
+		this._refreshDisplay();
+	},
+	hide: function(){
+		if(this.timeout){
+			Mainloop.source_remove(this.timeout);
+			this.timeout = null;
+		} else
+			this.close(true);
+	},
+
+	destroy: function(){
+			this.label.destroy();
+			this.windowThumbnail.destroy();
+			this.container.destroy();
+			this.actor.destroy();
+	}
+};
+
+function AppMenuButton(applet, metaWindow, animation, orientation, panelHeight, draggable) {
+    this._init(applet, metaWindow, animation, orientation, panelHeight, draggable);
 }
 
 AppMenuButton.prototype = {
@@ -334,8 +410,8 @@ AppMenuButton.prototype = {
         this._spinner = new Panel.AnimatedIcon('process-working.svg', PANEL_ICON_SIZE);
         this._container.add_actor(this._spinner.actor);
         this._spinner.actor.lower_bottom();
-        
-        this.set_icon(panel_height);
+
+        this.set_icon(panelHeight);
         let title = this.getDisplayTitle();
         this._label.set_text(title);        
         
@@ -356,6 +432,10 @@ AppMenuButton.prototype = {
             this._draggable.connect('drag-begin', Lang.bind(this, this._onDragBegin));
             this._draggable.connect('drag-cancelled', Lang.bind(this, this._onDragCancelled));
             this._draggable.connect('drag-end', Lang.bind(this, this._onDragEnd));
+
+            // Set up window preview
+			this.preview = new WindowPreviewMenu(this, orientation, applet.settings);
+			this._menuManager.addMenu(this.preview);
         } else {
             this._draggable = null;
         }
@@ -527,6 +607,7 @@ AppMenuButton.prototype = {
         if (event.get_button() == 3) {
             this.rightClickMenu.mouseEvent = event;
             this.rightClickMenu.toggle();
+            if(this.preview.isOpen) this.preview.hide();
             return true;
         }
         return false;
@@ -730,12 +811,12 @@ AppMenuButton.prototype = {
         return this.actor;
     },
 
-    set_icon: function(panel_height) {
+    set_icon: function(panelHeight) {
       let tracker = Cinnamon.WindowTracker.get_default();
       let app = tracker.get_window_app(this.metaWindow);
 
       if (global.settings.get_boolean('panel-scale-text-icons') && global.settings.get_boolean('panel-resizable')) {
-        this.iconSize = Math.round(panel_height * ICON_HEIGHT_FACTOR / global.ui_scale);
+        this.iconSize = Math.round(panelHeight * ICON_HEIGHT_FACTOR / global.ui_scale);
       }
       else {
         this.iconSize = DEFAULT_ICON_SIZE;
@@ -889,15 +970,15 @@ MyAppletAlertBox.prototype = {
     },
 }
 
-function MyApplet(orientation, panel_height) {
-    this._init(orientation, panel_height);
+function MyApplet(metadata, orientation, panelHeight, instanceId) {
+    this._init(metadata, orientation, panelHeight, instanceId);
 }
 
 MyApplet.prototype = {
     __proto__: Applet.Applet.prototype,
 
-    _init: function(orientation, panel_height) {        
-        Applet.Applet.prototype._init.call(this, orientation, panel_height);
+    _init: function(metadata, orientation, panelHeight, instanceId) {
+        Applet.Applet.prototype._init.call(this, orientation, panelHeight);
         this.actor.set_track_hover(false);
         try {                    
             this.orientation = orientation;
@@ -945,6 +1026,11 @@ MyApplet.prototype = {
             this._updateAttentionGrabber();
             // this._container.connect('allocate', Lang.bind(Main.panel, this._allocateBoxes)); 
             global.settings.connect('changed::panel-edit-mode', Lang.bind(this, this.on_panel_edit_mode_changed));
+            this.settings = {};
+            this.settingProvider = new Settings.AppletSettings(this.settings, metadata.uuid, instanceId);
+            ["previewdelay", "previewwidth", "previewheight"].forEach(function(p){
+                this.settingProvider.bindProperty(Settings.BindingDirection.IN, p, p);
+            }, this);
         }
         catch (e) {
             global.logError(e);
@@ -1188,7 +1274,7 @@ MyApplet.prototype = {
     }
 };
 
-function main(metadata, orientation, panel_height) {  
-    let myApplet = new MyApplet(orientation, panel_height);
-    return myApplet;      
+function main(metadata, orientation, panelHeight, instanceId) {
+    let myApplet = new MyApplet(metadata, orientation, panelHeight, instanceId);
+    return myApplet;
 }

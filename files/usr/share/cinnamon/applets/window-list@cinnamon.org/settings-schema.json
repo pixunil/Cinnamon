@@ -1,0 +1,29 @@
+{
+	"previewdelay": {
+		"type": "spinbutton",
+		"default": 500,
+		"min": 0,
+		"max": 10000,
+		"step": 50,
+		"units": "milliseconds",
+		"description": "Hover delay of preview"
+	},
+	"previewwidth": {
+		"type": "spinbutton",
+		"default": 240,
+		"min": 10,
+		"max": 600,
+		"step": 5,
+		"units": "milliseconds",
+		"description": "Maximal width of preview"
+	},
+	"previewheight": {
+		"type": "spinbutton",
+		"default": 135,
+		"min": 10,
+		"max": 400,
+		"step": 5,
+		"units": "milliseconds",
+		"description": "Maximal height of preview"
+	}
+}
