@@ -1091,17 +1091,14 @@ class GSettingsColorChooser(Gtk.ColorButton):
 
 class TweenChooser(Gtk.Button):
     def __init__(self, schema, key, dep_key):
-        #Gtk.Button.__init__()
         super(TweenChooser, self).__init__()
 
         self._schema = Gio.Settings.new(schema)
         self._key = key
         self.dep_key = dep_key
+        self.value = self._schema.get_string(key)
 
-        #self.pack_start(self.button, False, False, 2)
         self.connect("clicked", self.on_clicked)
-        #self.button.show_all()
-        #self.pack_start(self.button, False, False, 2)
 
         self.dependency_invert = False
         if self.dep_key is not None:
@@ -1121,11 +1118,7 @@ class TweenChooser(Gtk.Button):
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
     def on_clicked(self, widget):
-        #dialog = Gtk.Dialog()
-        dialog = TweenDialog()
-        #box = dialog.get_content_area()
-        #box.add(self.build_grid())
-        #box.show_all()
+        dialog = TweenDialog(self.value)
         response = dialog.run()
 
         if response == Gtk.ResponseType.CANCEL:
@@ -1133,10 +1126,11 @@ class TweenChooser(Gtk.Button):
             return
         dialog.destroy()
 
-        print "proccesing..."
+        self.value = dialog.value
+        self._schema.set_string(self._key, dialog.value)
 
 class TweenDialog(Gtk.Dialog):
-    def __init__(self):
+    def __init__(self, value):
         super(TweenDialog, self).__init__()
         Gtk.Dialog.__init__(self, _("Choose a tweening function"), None, 0, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_APPLY, Gtk.ResponseType.APPLY))
         self.box = self.get_content_area()
@@ -1147,23 +1141,36 @@ class TweenDialog(Gtk.Dialog):
         self.grid.attach(TweenFunctionWidget("None"), 0, 0, 1, 1)
 
         i = 1
-        for name in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
-            self.grid.attach(TweenFunctionWidget("In" + name), i, 0, 1, 1)
-            self.grid.attach(TweenFunctionWidget("Out" + name), i, 1, 1, 1)
-            self.grid.attach(TweenFunctionWidget("InOut" + name), i, 2, 1, 1)
-            self.grid.attach(TweenFunctionWidget("OutIn" + name), i, 3, 1, 1)
+        for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
+            j = 0
+            for prefix in ["In", "Out", "InOut", "OutIn"]:
+                name = "ease" + prefix + main
+                self.widgets[name] = TweenFunctionWidget(name)
+                self.grid.attach(self.widgets[name], i, j, 1, 1)
+                if name == value:
+                    self.widgets[name].set_active(True)
+                self.widgets[name].connect("clicked", self.change_active_widget)
+                j += 1
             i += 1
 
         self.box.show_all()
 
+    def change_active_widget(self, widget):
+        new_value = widget.name
+        if new_value != self.value:
+            self.widgets[self.value].set_active(False)
+            self.widgets[new_value].set_active(True)
+            self.value = new_value
 
 
-class TweenFunctionWidget(Gtk.Button):
+
+class TweenFunctionWidget(Gtk.ToggleButton):
     def __init__(self, name):
         super(TweenFunctionWidget, self).__init__()
 
-        self.function = eval("tweenEquations.ease" + name)
-        self.set_tooltip_text("ease" + name)
+        self.function = eval("tweenEquations." + name)
+        self.name = name
+        self.set_tooltip_text(name)
 
         self.box = Gtk.Box()
         self.add(self.box)
