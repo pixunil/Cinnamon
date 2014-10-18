@@ -23,6 +23,7 @@ try:
     import tempfile
     import math
     import subprocess
+    import tweenEquations
 
 except Exception, detail:
     print detail
@@ -1143,21 +1144,29 @@ class TweenDialog(Gtk.Dialog):
         self.grid = Gtk.Grid()
         self.box.add(self.grid)
 
-        self.grid.attach(TweenFunctionWidget(), 0, 0, 1, 1)
-        self.grid.attach(TweenFunctionWidget(), 1, 0, 1, 1)
-        self.grid.attach(TweenFunctionWidget(), 1, 1, 1, 1)
-        self.grid.attach(TweenFunctionWidget(), 1, 2, 1, 1)
+        self.grid.attach(TweenFunctionWidget("None"), 0, 0, 1, 1)
+
+        i = 1
+        for name in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
+            self.grid.attach(TweenFunctionWidget("In" + name), i, 0, 1, 1)
+            self.grid.attach(TweenFunctionWidget("Out" + name), i, 1, 1, 1)
+            self.grid.attach(TweenFunctionWidget("InOut" + name), i, 2, 1, 1)
+            self.grid.attach(TweenFunctionWidget("OutIn" + name), i, 3, 1, 1)
+            i += 1
 
         self.box.show_all()
 
 
 
 class TweenFunctionWidget(Gtk.Button):
-    def __init__(self):
+    def __init__(self, name):
         super(TweenFunctionWidget, self).__init__()
 
+        self.function = eval("tweenEquations.ease" + name)
+        self.set_tooltip_text("ease" + name)
+
         self.canvas = Gtk.DrawingArea()
-        self.canvas.set_size_request(48, 32)
+        self.canvas.set_size_request(54, 48)
 
         self.add(self.canvas)
         self.canvas.connect("draw", self.draw)
@@ -1165,8 +1174,10 @@ class TweenFunctionWidget(Gtk.Button):
 
     def draw(self, draw_area, ctx):
         ctx.set_source_rgb(.12, .29, .53)
-        ctx.move_to(0, 32)
-        ctx.line_to(48, 0)
+        ctx.move_to(1, 40)
+        for i in range(52):
+            i = float(i + 1)
+            ctx.line_to(i, self.function(i, 40., -32., 52.))
         ctx.stroke()
 
 # class GConfFontButton(Gtk.HBox):
