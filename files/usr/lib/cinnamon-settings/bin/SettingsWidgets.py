@@ -1088,6 +1088,87 @@ class GSettingsColorChooser(Gtk.ColorButton):
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
+class TweenChooser(Gtk.Button):
+    def __init__(self, schema, key, dep_key):
+        #Gtk.Button.__init__()
+        super(TweenChooser, self).__init__()
+
+        self._schema = Gio.Settings.new(schema)
+        self._key = key
+        self.dep_key = dep_key
+
+        #self.pack_start(self.button, False, False, 2)
+        self.connect("clicked", self.on_clicked)
+        #self.button.show_all()
+        #self.pack_start(self.button, False, False, 2)
+
+        self.dependency_invert = False
+        if self.dep_key is not None:
+            if self.dep_key[0] == '!':
+                self.dependency_invert = True
+                self.dep_key = self.dep_key[1:]
+            split = self.dep_key.split('/')
+            self.dep_settings = Gio.Settings.new(split[0])
+            self.dep_key = split[1]
+            self.dep_settings.connect("changed::" + self.dep_key, self.on_dependency_setting_changed)
+            self.on_dependency_setting_changed(self, None)
+
+    def on_dependency_setting_changed(self, settings, dep_key):
+        if not self.dependency_invert:
+            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
+        else:
+            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
+
+    def on_clicked(self, widget):
+        #dialog = Gtk.Dialog()
+        dialog = TweenDialog()
+        #box = dialog.get_content_area()
+        #box.add(self.build_grid())
+        #box.show_all()
+        response = dialog.run()
+
+        if response == Gtk.ResponseType.CANCEL:
+            dialog.destroy()
+            return
+        dialog.destroy()
+
+        print "proccesing..."
+
+class TweenDialog(Gtk.Dialog):
+    def __init__(self):
+        super(TweenDialog, self).__init__()
+        Gtk.Dialog.__init__(self, _("Choose a tweening function"), None, 0, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_APPLY, Gtk.ResponseType.APPLY))
+        self.box = self.get_content_area()
+
+        self.grid = Gtk.Grid()
+        self.box.add(self.grid)
+
+        self.grid.attach(TweenFunctionWidget(), 0, 0, 1, 1)
+        self.grid.attach(TweenFunctionWidget(), 1, 0, 1, 1)
+        self.grid.attach(TweenFunctionWidget(), 1, 1, 1, 1)
+        self.grid.attach(TweenFunctionWidget(), 1, 2, 1, 1)
+
+        self.box.show_all()
+
+
+
+class TweenFunctionWidget(Gtk.Button):
+    def __init__(self):
+        super(TweenFunctionWidget, self).__init__()
+
+        self.canvas = Gtk.DrawingArea()
+        self.canvas.set_size_request(48, 32)
+
+        self.add(self.canvas)
+        self.canvas.connect("draw", self.draw)
+        #self.show()
+
+    def draw(self, draw_area, ctx):
+        ctx.set_source_rgb(.12, .29, .53)
+        ctx.move_to(0, 32)
+        ctx.line_to(48, 0)
+        ctx.stroke()
+
 # class GConfFontButton(Gtk.HBox):
 #     def __init__(self, label, key):
 #         self.key = key
