@@ -1165,20 +1165,59 @@ class TweenFunctionWidget(Gtk.Button):
         self.function = eval("tweenEquations.ease" + name)
         self.set_tooltip_text("ease" + name)
 
-        self.canvas = Gtk.DrawingArea()
-        self.canvas.set_size_request(54, 48)
+        self.box = Gtk.Box()
+        self.add(self.box)
 
-        self.add(self.canvas)
-        self.canvas.connect("draw", self.draw)
-        #self.show()
+        self.graph = Gtk.DrawingArea()
+        self.graph.set_size_request(54, 48)
+        self.box.add(self.graph)
+        self.graph.connect("draw", self.draw_graph)
 
-    def draw(self, draw_area, ctx):
+        self.arr = Gtk.DrawingArea()
+        self.arr.set_size_request(5, 48)
+        self.box.add(self.arr)
+        self.arr.connect("draw", self.draw_arr)
+
+        self.arr_state = -1. #the "time" for the animation, -1: disabled
+        self.arr_timer = None
+
+        self.connect("enter-notify-event", self.start_animation)
+        self.connect("leave-notify-event", self.end_animation)
+
+    def draw_graph(self, draw_area, ctx):
         ctx.set_source_rgb(.12, .29, .53)
         ctx.move_to(1, 40)
         for i in range(52):
             i = float(i + 1)
             ctx.line_to(i, self.function(i, 40., -32., 52.))
         ctx.stroke()
+
+    def draw_arr(self, draw_area, ctx):
+        if self.arr_state == -1:
+            return
+        ctx.set_source_rgb(.12, .29, .53)
+        ctx.arc(5, self.function(self.arr_state, 40., -32., 52), 5, math.pi / 2, math.pi * 1.5)
+        ctx.fill()
+
+    def start_animation(self, a, b):
+        self.arr_timer = Timer(.01, self.next_frame)
+        self.arr_timer.start()
+
+    def end_animation(self, a, b):
+        if self.arr_timer is not None:
+            self.arr_timer.cancel()
+            self.arr_state = -1.
+            self.arr.queue_draw()
+            self.arr_timer = None
+
+    def next_frame(self):
+        self.arr_state += 1
+        if self.arr_state <= 52:
+            self.arr.queue_draw()
+            self.arr_timer = Timer(.01, self.next_frame)
+            self.arr_timer.start()
+
+
 
 # class GConfFontButton(Gtk.HBox):
 #     def __init__(self, label, key):
