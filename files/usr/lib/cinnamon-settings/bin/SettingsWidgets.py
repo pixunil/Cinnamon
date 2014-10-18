@@ -24,6 +24,7 @@ try:
     import math
     import subprocess
     import tweenEquations
+    from threading import Timer
 
 except Exception, detail:
     print detail
@@ -1138,7 +1139,15 @@ class TweenDialog(Gtk.Dialog):
         self.grid = Gtk.Grid()
         self.box.add(self.grid)
 
-        self.grid.attach(TweenFunctionWidget("None"), 0, 0, 1, 1)
+        self.widgets = {}
+        self.value = value
+
+        name = "easeNone"
+        self.widgets[name] = TweenFunctionWidget(name)
+        self.grid.attach(self.widgets[name], 0, 0, 1, 1)
+        if name == value:
+            self.widgets[name].set_active(True)
+        self.widgets[name].connect("clicked", self.change_active_widget)
 
         i = 1
         for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
