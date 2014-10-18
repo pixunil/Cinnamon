@@ -23,6 +23,8 @@ try:
     import tempfile
     import math
     import subprocess
+    import tweenEquations
+    from threading import Timer
 
 except Exception, detail:
     print detail
@@ -1087,6 +1089,181 @@ class GSettingsColorChooser(Gtk.ColorButton):
             self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
+
+class TweenChooser(Gtk.Button):
+    def __init__(self, schema, key, dep_key):
+        super(TweenChooser, self).__init__()
+
+        self._schema = Gio.Settings.new(schema)
+        self._key = key
+        self.dep_key = dep_key
+        self.value = self._schema.get_string(key)
+
+        self.menu = Gtk.Menu()
+        self.connect("button-release-event", self.on_button_clicked)
+
+        self.set_label(self.value)
+        self.set_size_request(128, -1)
+
+        self.build_menuitem("None", 0, 0)
+
+        row = 1
+        for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
+            col = 0
+            for prefix in ["In", "Out", "InOut", "OutIn"]:
+                self.build_menuitem(prefix + main, col, row)
+                col += 1
+            row += 1
+
+        self.dependency_invert = False
+        if self.dep_key is not None:
+            if self.dep_key[0] == '!':
+                self.dependency_invert = True
+                self.dep_key = self.dep_key[1:]
+            split = self.dep_key.split('/')
+            self.dep_settings = Gio.Settings.new(split[0])
+            self.dep_key = split[1]
+            self.dep_settings.connect("changed::" + self.dep_key, self.on_dependency_setting_changed)
+            self.on_dependency_setting_changed(self, None)
+
+    def on_dependency_setting_changed(self, settings, dep_key):
+        if not self.dependency_invert:
+            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
+        else:
+            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
+
+    def build_menuitem(self, name, col, row):
+        menuitem = TweenMenuItem("ease" + name)
+        menuitem.connect("activate", self.change_value)
+        self.menu.attach(menuitem, col, col + 1, row, row + 1)
+
+    def change_value(self, widget):
+        self.value = widget.name
+        self.set_label(self.value)
+        self._schema.set_string(self._key, self.value)
+
+    #Imports from PictureChooserButton
+    def popup_menu_below_button (self, menu, widget):
+        window = widget.get_window()
+        screen = window.get_screen()
+        monitor = screen.get_monitor_at_window(window)
+
+        warea = screen.get_monitor_workarea(monitor)
+        wrect = widget.get_allocation()
+        mrect = menu.get_allocation()
+
+        unused_var, window_x, window_y = window.get_origin()
+
+        # Position left edge of the menu with the right edge of the button
+        x = window_x + wrect.x + wrect.width
+        # Center the menu vertically with respect to the monitor
+        y = warea.y + (warea.height / 2) - (mrect.height / 2)
+
+        # Now, check if we're still touching the button - we want the right edge
+        # of the button always 100% touching the menu
+
+        if y > (window_y + wrect.y):
+            y = y - (y - (window_y + wrect.y))
+        elif (y + mrect.height) < (window_y + wrect.y + wrect.height):
+            y = y + ((window_y + wrect.y + wrect.height) - (y + mrect.height))
+
+        push_in = True # push_in is True so all menu is always inside screen
+        return (x, y, push_in)
+
+    def on_button_clicked(self, widget, event):
+        if event.button == 1:
+            self.menu.show_all()
+            self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
+
+class TweenMenuItem(Gtk.MenuItem):
+    def __init__(self, name):
+        super(TweenMenuItem, self).__init__()
+
+        self.width = 96
+        self.height = 48
+
+        self.name = name
+        self.function = eval("tweenEquations." + name)
+
+        self.vbox = Gtk.VBox()
+        self.add(self.vbox)
+
+        box = Gtk.Box()
+        self.vbox.add(box)
+
+        self.graph = Gtk.DrawingArea()
+        box.add(self.graph)
+        self.graph.set_size_request(self.width, self.height)
+        self.graph.connect("draw", self.draw_graph)
+
+        self.arr = Gtk.DrawingArea()
+        box.pack_end(self.arr, False, False, 0)
+        self.arr.set_size_request(5, self.height)
+        self.arr.connect("draw", self.draw_arr)
+
+        self.arr_state = -1. #the "time" for the animation, -1: disabled
+        self.arr_timer = None
+
+        self.connect("enter-notify-event", self.start_animation)
+        self.connect("leave-notify-event", self.end_animation)
+
+        label = Gtk.Label()
+        self.vbox.add(label)
+        label.set_text(name)
+
+    def draw_graph(self, widget, ctx):
+        width = self.width - 2.
+        height = self.height / 8.
+
+        context = widget.get_style_context()
+        if self.arr_state == -1:
+            c = context.get_background_color(Gtk.StateFlags.SELECTED)
+        else:
+            c = context.get_color(Gtk.StateFlags.NORMAL)
+        ctx.set_source_rgb(c.red, c.green, c.blue)
+
+        ctx.move_to(1, height * 6)
+        for i in range(int(width)):
+            ctx.line_to(i + 2, self.function(i + 1., height * 6, -height * 4, width))
+        ctx.stroke()
+
+    def draw_arr(self, widget, ctx):
+        if self.arr_state == -1:
+            return
+        width = self.width * 1.
+        height = self.height / 8.
+
+        context = widget.get_style_context()
+        c = context.get_color(Gtk.StateFlags.NORMAL)
+        ctx.set_source_rgb(c.red, c.green, c.blue)
+
+        ctx.arc(5, self.function(self.arr_state, height * 6, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
+        ctx.fill()
+
+    def start_animation(self, a, b):
+        self.arr_timer = Timer(.01, self.next_frame)
+        self.arr_timer.start()
+
+    def end_animation(self, a, b):
+        if self.arr_timer is not None:
+            self.arr_timer.cancel()
+            self.arr_state = -1.
+            self.arr.queue_draw()
+            self.arr_timer = None
+        self.graph.queue_draw()
+
+    def next_frame(self):
+        self.arr_state += 1
+        if self.arr_state <= self.width:
+            self.arr.queue_draw()
+            self.arr_timer = Timer(.01, self.next_frame)
+            self.arr_timer.start()
+            if self.arr_state == 0:
+                self.graph.queue_draw()
+        elif self.arr_timer is not None:
+            self.arr_timer.cancel()
+            self.arr_state = self.width
+
 
 # class GConfFontButton(Gtk.HBox):
 #     def __init__(self, label, key):

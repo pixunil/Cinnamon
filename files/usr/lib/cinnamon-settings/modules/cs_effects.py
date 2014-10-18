@@ -12,39 +12,6 @@ class Module:
         self.category = "appear"
         self.comment = _("Control Cinnamon visual effects.")            
 
-        # Destroy window effects
-        self.transition_effects = [[effect] * 2 for effect in
-                              ["easeInQuad",
-                               "easeOutQuad",
-                               "easeInOutQuad",
-                               "easeInCubic",
-                               "easeOutCubic",
-                               "easeInOutCubic",
-                               "easeInQuart",
-                               "easeOutQuart",
-                               "easeInOutQuart",
-                               "easeInQuint",
-                               "easeOutQuint",
-                               "easeInOutQuint",
-                               "easeInSine",
-                               "easeOutSine",
-                               "easeInOutSine",
-                               "easeInExpo",
-                               "easeOutExpo",
-                               "easeInOutExpo",
-                               "easeInCirc",
-                               "easeOutCirc",
-                               "easeInOutCirc",
-                               "easeInElastic",
-                               "easeOutElastic",
-                               "easeInOutElastic",
-                               "easeInBack",
-                               "easeOutBack",
-                               "easeInOutBack",
-                               "easeInBounce",
-                               "easeOutBounce",
-                               "easeInOutBounce"]]              
-      
     def on_module_selected(self):
         if not self.loaded:
             print "Loading Effects module"
@@ -104,7 +71,7 @@ class Module:
         w = GSettingsComboBox("", root, template % (key, "effect"), path, effects)
         self.size_groups[1].add_widget(w)
         box.add(w)
-        w = GSettingsComboBox("", root, template % (key, "transition"), path, self.transition_effects)
+        w = TweenChooser(root, template % (key, "transition"), path)
         self.size_groups[2].add_widget(w)
         box.add(w)
         w = GSettingsSpinButton("", root, template % (key, "time"), path, tmin, tmax, tstep, tdefault, _("milliseconds"))
