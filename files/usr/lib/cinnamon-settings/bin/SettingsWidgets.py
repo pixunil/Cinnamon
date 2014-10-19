@@ -1099,6 +1099,14 @@ class TweenChooser(Gtk.Button):
         self.dep_key = dep_key
         self.value = self._schema.get_string(key)
 
+        self.function = eval("tweenEquations." + self.value)
+        self.set_tooltip_text(self.value)
+
+        self.graph = Gtk.DrawingArea()
+        self.graph.set_size_request(24, -1)
+        self.add(self.graph)
+        self.graph.connect("draw", self.draw_graph)
+
         self.connect("clicked", self.on_clicked)
 
         self.dependency_invert = False
@@ -1128,7 +1136,19 @@ class TweenChooser(Gtk.Button):
         dialog.destroy()
 
         self.value = dialog.value
-        self._schema.set_string(self._key, dialog.value)
+        self._schema.set_string(self._key, self.value)
+        self.function = eval("tweenEquations." + self.value)
+        self.set_tooltip_text(self.value)
+        self.graph.queue_draw()
+
+    def draw_graph(self, draw_area, ctx):
+        ctx.set_source_rgb(.12, .29, .53)
+        height = self.size_request().height
+        ctx.move_to(0, height)
+        for i in range(24):
+            i = float(i + 1)
+            ctx.line_to(i, self.function(i, height, -height, 24.))
+        ctx.stroke()
 
 class TweenDialog(Gtk.Dialog):
     def __init__(self, value):
@@ -1232,6 +1252,9 @@ class TweenFunctionWidget(Gtk.ToggleButton):
             self.arr.queue_draw()
             self.arr_timer = Timer(.01, self.next_frame)
             self.arr_timer.start()
+        elif self.arr_timer is not None:
+            self.arr_timer.cancel()
+            self.arr_state = 52.
 
 
 
