@@ -1103,7 +1103,7 @@ class TweenChooser(Gtk.Button):
         self.set_tooltip_text(self.value)
 
         self.graph = Gtk.DrawingArea()
-        self.graph.set_size_request(24, -1)
+        self.graph.set_size_request(26, -1)
         self.add(self.graph)
         self.graph.connect("draw", self.draw_graph)
 
@@ -1143,11 +1143,11 @@ class TweenChooser(Gtk.Button):
 
     def draw_graph(self, draw_area, ctx):
         ctx.set_source_rgb(.12, .29, .53)
-        height = self.size_request().height
-        ctx.move_to(0, height)
+        height = self.size_request().height - 1
+        ctx.move_to(1, height)
         for i in range(24):
             i = float(i + 1)
-            ctx.line_to(i, self.function(i, height, -height, 24.))
+            ctx.line_to(i, self.function(i, height, -height + 1, 24.))
         ctx.stroke()
 
 class TweenDialog(Gtk.Dialog):
