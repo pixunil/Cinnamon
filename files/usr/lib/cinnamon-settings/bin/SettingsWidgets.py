@@ -1099,7 +1099,6 @@ class TweenChooser(PictureChooserButton):
         self.dep_key = dep_key
         self.value = self._schema.get_string(key)
 
-        self.function = eval("tweenEquations." + self.value)
         self.set_label(self.value)
         self.set_size_request(-1, -1)
 
@@ -1112,12 +1111,6 @@ class TweenChooser(PictureChooserButton):
                 self.build_menuitem(prefix + main, col, row)
                 col += 1
             row += 1
-
-        #self.graph = Gtk.DrawingArea()
-        #self.graph.set_size_request(26, -1)
-        #self.add(self.graph)
-        #self.graph.connect("draw", self.draw_graph)
-
 
         self.dependency_invert = False
         if self.dep_key is not None:
@@ -1138,31 +1131,14 @@ class TweenChooser(PictureChooserButton):
 
     def build_menuitem(self, name, col, row):
         menuitem = TweenMenuItem("ease" + name)
+        menuitem.connect("activate", self.change_value)
         self.menu.attach(menuitem, col, col + 1, row, row + 1)
 
-    def on_clicked(self, widget):
-        dialog = TweenDialog(self.value)
-        response = dialog.run()
-
-        if response == Gtk.ResponseType.CANCEL:
-            dialog.destroy()
-            return
-        dialog.destroy()
-
-        self.value = dialog.value
+    def change_value(self, widget):
+        self.value = widget.name
+        self.set_label(self.value)
         self._schema.set_string(self._key, self.value)
-        self.function = eval("tweenEquations." + self.value)
-        self.set_tooltip_text(self.value)
-        self.graph.queue_draw()
 
-    def draw_graph(self, draw_area, ctx):
-        ctx.set_source_rgb(.12, .29, .53)
-        height = self.size_request().height - 1
-        ctx.move_to(1, height)
-        for i in range(24):
-            i = float(i + 1)
-            ctx.line_to(i, self.function(i, height, -height + 1, 24.))
-        ctx.stroke()
 
 class TweenMenuItem(Gtk.MenuItem):
     def __init__(self, name):

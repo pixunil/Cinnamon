@@ -10,6 +10,9 @@ try:
     import json
     import dbus
     import eyedropper
+    import tweenEquations
+    import math
+    from threading import Timer
     from gi.repository import Gio, Gtk, GObject, Gdk, GdkPixbuf
 except Exception, detail:
     print detail
@@ -30,6 +33,7 @@ setting_dict = {
     "colorchooser"    :   "ColorChooser",
     "radiogroup"      :   "RadioGroup",
     "iconfilechooser" :   "IconFileChooser",
+    "tween"           :   "Tween",
     "keybinding"      :   "Keybinding",
     "button"          :   "Button" # Not a setting, provides a button which triggers a callback in the applet/desklet
 }
@@ -1019,6 +1023,172 @@ class Scale(Gtk.HBox, BaseWidget):
 
     def update_dep_state(self, active):
         self.scale.set_sensitive(active)
+
+class Tween(Gtk.HBox, BaseWidget):
+    def __init__(self, key, settings_obj, uuid):
+        BaseWidget.__init__(self, key, settings_obj, uuid)
+        super(Tween, self).__init__()
+
+        self.label = Gtk.Label.new(self.get_desc())
+        if self.get_desc() != "":
+            self.pack_start(self.label, False, False, 2)
+
+        self.tween = TweenChooser(self.get_val(), key, settings_obj, uuid)
+        set_tt(self.get_tooltip(), self.label, self.tween)
+        self.pack_start(self.tween, False, False, 2)
+
+class TweenChooser(Gtk.Button):
+    def __init__(self, value, key, settings_obj, uuid):
+        super(TweenChooser, self).__init__()
+
+        self.value = value
+        self.key = key
+        self.settings_obj = settings_obj
+        self.uuid = uuid
+
+        self.menu = Gtk.Menu()
+        self.connect("button-release-event", self._on_button_clicked)
+
+        self.set_label(self.value)
+        self.set_size_request(-1, -1)
+
+        self.build_menuitem("None", 0, 0)
+
+        row = 1
+        for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
+            col = 0
+            for prefix in ["In", "Out", "InOut", "OutIn"]:
+                self.build_menuitem(prefix + main, col, row)
+                col += 1
+            row += 1
+
+
+    def build_menuitem(self, name, col, row):
+        menuitem = TweenMenuItem("ease" + name)
+        menuitem.connect("activate", self.change_value)
+        self.menu.attach(menuitem, col, col + 1, row, row + 1)
+
+    def change_value(self, widget):
+        self.value = widget.name
+        self.set_label(self.value)
+        #set value
+        try:
+            self.settings_obj.set_value(self.key, self.value)
+        except Exception, detail:
+            print ("Could not set value for key '%s' in xlet '%s'" % (self.key, self.uuid))
+            print detail
+
+    #Imports from PictureChooserButton
+    def popup_menu_below_button (self, menu, widget):
+        window = widget.get_window()
+        screen = window.get_screen()
+        monitor = screen.get_monitor_at_window(window)
+
+        warea = screen.get_monitor_workarea(monitor)
+        wrect = widget.get_allocation()
+        mrect = menu.get_allocation()
+
+        unused_var, window_x, window_y = window.get_origin()
+
+        # Position left edge of the menu with the right edge of the button
+        x = window_x + wrect.x + wrect.width
+        # Center the menu vertically with respect to the monitor
+        y = warea.y + (warea.height / 2) - (mrect.height / 2)
+
+        # Now, check if we're still touching the button - we want the right edge
+        # of the button always 100% touching the menu
+
+        if y > (window_y + wrect.y):
+            y = y - (y - (window_y + wrect.y))
+        elif (y + mrect.height) < (window_y + wrect.y + wrect.height):
+            y = y + ((window_y + wrect.y + wrect.height) - (y + mrect.height))
+
+        push_in = True # push_in is True so all menu is always inside screen
+        return (x, y, push_in)
+
+    def _on_button_clicked(self, widget, event):
+        if event.button == 1:
+            self.menu.show_all()
+            self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
+
+class TweenMenuItem(Gtk.MenuItem):
+    def __init__(self, name):
+        super(TweenMenuItem, self).__init__()
+
+        self.width = 96
+        self.height = 48
+
+        self.name = name
+        self.function = eval("tweenEquations." + name)
+
+        self.vbox = Gtk.VBox()
+        self.add(self.vbox)
+
+        box = Gtk.Box()
+        self.vbox.add(box)
+
+        self.graph = Gtk.DrawingArea()
+        box.add(self.graph)
+        self.graph.set_size_request(self.width, self.height)
+        self.graph.connect("draw", self.draw_graph)
+
+        self.arr = Gtk.DrawingArea()
+        box.pack_end(self.arr, False, False, 0)
+        self.arr.set_size_request(5, self.height)
+        self.arr.connect("draw", self.draw_arr)
+
+        self.arr_state = -1. #the "time" for the animation, -1: disabled
+        self.arr_timer = None
+
+        self.connect("enter-notify-event", self.start_animation)
+        self.connect("leave-notify-event", self.end_animation)
+
+        label = Gtk.Label()
+        self.vbox.add(label)
+        label.set_text(name)
+
+    def draw_graph(self, draw_area, ctx):
+        ctx.set_source_rgb(.12, .29, .53)
+
+        width = self.width * 1.
+        height = self.height / 6.
+
+        ctx.move_to(1, height * 5)
+        for i in range(int(width)):
+            i = float(i + 1)
+            ctx.line_to(i, self.function(i, height * 5, -height * 4, width))
+        ctx.stroke()
+
+    def draw_arr(self, draw_area, ctx):
+        if self.arr_state == -1:
+            return
+        width = self.width * 1.
+        height = self.height / 6.
+
+        ctx.set_source_rgb(.12, .29, .53)
+        ctx.arc(5, self.function(self.arr_state, height * 5, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
+        ctx.fill()
+
+    def start_animation(self, a, b):
+        self.arr_timer = Timer(.01, self.next_frame)
+        self.arr_timer.start()
+
+    def end_animation(self, a, b):
+        if self.arr_timer is not None:
+            self.arr_timer.cancel()
+            self.arr_state = -1.
+            self.arr.queue_draw()
+            self.arr_timer = None
+
+    def next_frame(self):
+        self.arr_state += 1
+        if self.arr_state <= self.width:
+            self.arr.queue_draw()
+            self.arr_timer = Timer(.01, self.next_frame)
+            self.arr_timer.start()
+        elif self.arr_timer is not None:
+            self.arr_timer.cancel()
+            self.arr_state = self.width
 
 
 SPECIAL_MODS = (["Super_L",    "<Super>"],
