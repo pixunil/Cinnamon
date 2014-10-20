@@ -1090,7 +1090,7 @@ class GSettingsColorChooser(Gtk.ColorButton):
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
-class TweenChooser(Gtk.Button):
+class TweenChooser(PictureChooserButton):
     def __init__(self, schema, key, dep_key):
         super(TweenChooser, self).__init__()
 
@@ -1100,14 +1100,24 @@ class TweenChooser(Gtk.Button):
         self.value = self._schema.get_string(key)
 
         self.function = eval("tweenEquations." + self.value)
-        self.set_tooltip_text(self.value)
+        self.set_label(self.value)
+        self.set_size_request(-1, -1)
 
-        self.graph = Gtk.DrawingArea()
-        self.graph.set_size_request(26, -1)
-        self.add(self.graph)
-        self.graph.connect("draw", self.draw_graph)
+        self.build_menuitem("None", 0, 0)
 
-        self.connect("clicked", self.on_clicked)
+        row = 1
+        for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
+            col = 0
+            for prefix in ["In", "Out", "InOut", "OutIn"]:
+                self.build_menuitem(prefix + main, col, row)
+                col += 1
+            row += 1
+
+        #self.graph = Gtk.DrawingArea()
+        #self.graph.set_size_request(26, -1)
+        #self.add(self.graph)
+        #self.graph.connect("draw", self.draw_graph)
+
 
         self.dependency_invert = False
         if self.dep_key is not None:
@@ -1125,6 +1135,10 @@ class TweenChooser(Gtk.Button):
             self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
+
+    def build_menuitem(self, name, col, row):
+        menuitem = TweenMenuItem("ease" + name)
+        self.menu.attach(menuitem, col, col + 1, row, row + 1)
 
     def on_clicked(self, widget):
         dialog = TweenDialog(self.value)
@@ -1150,68 +1164,30 @@ class TweenChooser(Gtk.Button):
             ctx.line_to(i, self.function(i, height, -height + 1, 24.))
         ctx.stroke()
 
-class TweenDialog(Gtk.Dialog):
-    def __init__(self, value):
-        super(TweenDialog, self).__init__()
-        Gtk.Dialog.__init__(self, _("Choose a tweening function"), None, 0, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_APPLY, Gtk.ResponseType.APPLY))
-        self.box = self.get_content_area()
-
-        self.grid = Gtk.Grid()
-        self.box.add(self.grid)
-
-        self.widgets = {}
-        self.value = value
-
-        name = "easeNone"
-        self.widgets[name] = TweenFunctionWidget(name)
-        self.grid.attach(self.widgets[name], 0, 0, 1, 1)
-        if name == value:
-            self.widgets[name].set_active(True)
-        self.widgets[name].connect("clicked", self.change_active_widget)
-
-        i = 1
-        for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
-            j = 0
-            for prefix in ["In", "Out", "InOut", "OutIn"]:
-                name = "ease" + prefix + main
-                self.widgets[name] = TweenFunctionWidget(name)
-                self.grid.attach(self.widgets[name], i, j, 1, 1)
-                if name == value:
-                    self.widgets[name].set_active(True)
-                self.widgets[name].connect("clicked", self.change_active_widget)
-                j += 1
-            i += 1
-
-        self.box.show_all()
-
-    def change_active_widget(self, widget):
-        new_value = widget.name
-        if new_value != self.value:
-            self.widgets[self.value].set_active(False)
-            self.widgets[new_value].set_active(True)
-            self.value = new_value
-
-
-
-class TweenFunctionWidget(Gtk.ToggleButton):
+class TweenMenuItem(Gtk.MenuItem):
     def __init__(self, name):
-        super(TweenFunctionWidget, self).__init__()
+        super(TweenMenuItem, self).__init__()
 
-        self.function = eval("tweenEquations." + name)
+        self.width = 96
+        self.height = 48
+
         self.name = name
-        self.set_tooltip_text(name)
+        self.function = eval("tweenEquations." + name)
 
-        self.box = Gtk.Box()
-        self.add(self.box)
+        self.vbox = Gtk.VBox()
+        self.add(self.vbox)
+
+        box = Gtk.Box()
+        self.vbox.add(box)
 
         self.graph = Gtk.DrawingArea()
-        self.graph.set_size_request(54, 48)
-        self.box.add(self.graph)
+        box.add(self.graph)
+        self.graph.set_size_request(self.width, self.height)
         self.graph.connect("draw", self.draw_graph)
 
         self.arr = Gtk.DrawingArea()
-        self.arr.set_size_request(5, 48)
-        self.box.add(self.arr)
+        box.pack_end(self.arr, False, False, 0)
+        self.arr.set_size_request(5, self.height)
         self.arr.connect("draw", self.draw_arr)
 
         self.arr_state = -1. #the "time" for the animation, -1: disabled
@@ -1220,19 +1196,30 @@ class TweenFunctionWidget(Gtk.ToggleButton):
         self.connect("enter-notify-event", self.start_animation)
         self.connect("leave-notify-event", self.end_animation)
 
+        label = Gtk.Label()
+        self.vbox.add(label)
+        label.set_text(name)
+
     def draw_graph(self, draw_area, ctx):
         ctx.set_source_rgb(.12, .29, .53)
-        ctx.move_to(1, 40)
-        for i in range(52):
+
+        width = self.width * 1.
+        height = self.height / 6.
+
+        ctx.move_to(1, height * 5)
+        for i in range(int(width)):
             i = float(i + 1)
-            ctx.line_to(i, self.function(i, 40., -32., 52.))
+            ctx.line_to(i, self.function(i, height * 5, -height * 4, width))
         ctx.stroke()
 
     def draw_arr(self, draw_area, ctx):
         if self.arr_state == -1:
             return
+        width = self.width * 1.
+        height = self.height / 6.
+
         ctx.set_source_rgb(.12, .29, .53)
-        ctx.arc(5, self.function(self.arr_state, 40., -32., 52), 5, math.pi / 2, math.pi * 1.5)
+        ctx.arc(5, self.function(self.arr_state, height * 5, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
         ctx.fill()
 
     def start_animation(self, a, b):
@@ -1248,14 +1235,13 @@ class TweenFunctionWidget(Gtk.ToggleButton):
 
     def next_frame(self):
         self.arr_state += 1
-        if self.arr_state <= 52:
+        if self.arr_state <= self.width:
             self.arr.queue_draw()
             self.arr_timer = Timer(.01, self.next_frame)
             self.arr_timer.start()
         elif self.arr_timer is not None:
             self.arr_timer.cancel()
-            self.arr_state = 52.
-
+            self.arr_state = self.width
 
 
 # class GConfFontButton(Gtk.HBox):
