@@ -1147,11 +1147,16 @@ class TweenMenuItem(Gtk.MenuItem):
         self.vbox.add(label)
         label.set_text(name)
 
-    def draw_graph(self, draw_area, ctx):
-        ctx.set_source_rgb(.12, .29, .53)
-
+    def draw_graph(self, widget, ctx):
         width = self.width * 1.
         height = self.height / 6.
+
+        context = widget.get_style_context()
+        if self.arr_state == -1:
+            c = context.get_background_color(Gtk.StateFlags.SELECTED)
+        else:
+            c = context.get_color(Gtk.StateFlags.NORMAL)
+        ctx.set_source_rgb(c.red, c.green, c.blue)
 
         ctx.move_to(1, height * 5)
         for i in range(int(width)):
@@ -1159,13 +1164,16 @@ class TweenMenuItem(Gtk.MenuItem):
             ctx.line_to(i, self.function(i, height * 5, -height * 4, width))
         ctx.stroke()
 
-    def draw_arr(self, draw_area, ctx):
+    def draw_arr(self, widget, ctx):
         if self.arr_state == -1:
             return
         width = self.width * 1.
         height = self.height / 6.
 
-        ctx.set_source_rgb(.12, .29, .53)
+        context = widget.get_style_context()
+        c = context.get_color(Gtk.StateFlags.NORMAL)
+        ctx.set_source_rgb(c.red, c.green, c.blue)
+
         ctx.arc(5, self.function(self.arr_state, height * 5, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
         ctx.fill()
 
@@ -1179,6 +1187,7 @@ class TweenMenuItem(Gtk.MenuItem):
             self.arr_state = -1.
             self.arr.queue_draw()
             self.arr_timer = None
+            self.graph.queue_draw()
 
     def next_frame(self):
         self.arr_state += 1
@@ -1186,6 +1195,8 @@ class TweenMenuItem(Gtk.MenuItem):
             self.arr.queue_draw()
             self.arr_timer = Timer(.01, self.next_frame)
             self.arr_timer.start()
+            if self.arr_state == 0:
+                self.graph.queue_draw()
         elif self.arr_timer is not None:
             self.arr_timer.cancel()
             self.arr_state = self.width
