@@ -1050,7 +1050,7 @@ class TweenChooser(Gtk.Button):
         self.connect("button-release-event", self._on_button_clicked)
 
         self.set_label(self.value)
-        self.set_size_request(-1, -1)
+        self.set_size_request(128, -1)
 
         self.build_menuitem("None", 0, 0)
 
@@ -1061,7 +1061,6 @@ class TweenChooser(Gtk.Button):
                 self.build_menuitem(prefix + main, col, row)
                 col += 1
             row += 1
-
 
     def build_menuitem(self, name, col, row):
         menuitem = TweenMenuItem("ease" + name)

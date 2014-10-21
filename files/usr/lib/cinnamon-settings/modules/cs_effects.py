@@ -12,39 +12,6 @@ class Module:
         self.category = "appear"
         self.comment = _("Control Cinnamon visual effects.")            
 
-        # Destroy window effects
-        self.transition_effects = [[effect] * 2 for effect in
-                              ["easeInQuad",
-                               "easeOutQuad",
-                               "easeInOutQuad",
-                               "easeInCubic",
-                               "easeOutCubic",
-                               "easeInOutCubic",
-                               "easeInQuart",
-                               "easeOutQuart",
-                               "easeInOutQuart",
-                               "easeInQuint",
-                               "easeOutQuint",
-                               "easeInOutQuint",
-                               "easeInSine",
-                               "easeOutSine",
-                               "easeInOutSine",
-                               "easeInExpo",
-                               "easeOutExpo",
-                               "easeInOutExpo",
-                               "easeInCirc",
-                               "easeOutCirc",
-                               "easeInOutCirc",
-                               "easeInElastic",
-                               "easeOutElastic",
-                               "easeInOutElastic",
-                               "easeInBack",
-                               "easeOutBack",
-                               "easeInOutBack",
-                               "easeInBounce",
-                               "easeOutBounce",
-                               "easeInOutBounce"]]              
-      
     def on_module_selected(self):
         if not self.loaded:
             print "Loading Effects module"

@@ -1100,7 +1100,7 @@ class TweenChooser(PictureChooserButton):
         self.value = self._schema.get_string(key)
 
         self.set_label(self.value)
-        self.set_size_request(-1, -1)
+        self.set_size_request(128, -1)
 
         self.build_menuitem("None", 0, 0)
 
@@ -1138,7 +1138,6 @@ class TweenChooser(PictureChooserButton):
         self.value = widget.name
         self.set_label(self.value)
         self._schema.set_string(self._key, self.value)
-
 
 class TweenMenuItem(Gtk.MenuItem):
     def __init__(self, name):
