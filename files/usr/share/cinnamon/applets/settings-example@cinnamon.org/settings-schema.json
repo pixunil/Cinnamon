@@ -73,6 +73,17 @@
     "callback" : "on_config_button_pressed",
     "tooltip" : "Pressing this button activates a callback method in the applet - go ahead, press it."
  },
+ "tween-function" : {
+    "type" : "tween",
+    "default" : "EaseNone",
+    "description" : "Animation type",
+    "tooltip": "A tween chooser has as value a string, which you can pass as transition to Tweener.addTween()"
+ },
+ "tween-test" : {
+    "type" : "button",
+    "description" : "Test the Animation",
+    "callback" : "animate_icon"
+ },
  "signal-test" : {
     "type" : "checkbox",
     "description" : "This is a test widget for individual key signal firing",
