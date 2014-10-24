@@ -1047,7 +1047,7 @@ class TweenChooser(Gtk.Button):
         self.uuid = uuid
 
         self.menu = Gtk.Menu()
-        self.connect("button-release-event", self._on_button_clicked)
+        self.connect("button-release-event", self.on_button_clicked)
 
         self.set_label(self.value)
         self.set_size_request(128, -1)
@@ -1105,7 +1105,7 @@ class TweenChooser(Gtk.Button):
         push_in = True # push_in is True so all menu is always inside screen
         return (x, y, push_in)
 
-    def _on_button_clicked(self, widget, event):
+    def on_button_clicked(self, widget, event):
         if event.button == 1:
             self.menu.show_all()
             self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
@@ -1147,7 +1147,7 @@ class TweenMenuItem(Gtk.MenuItem):
         label.set_text(name)
 
     def draw_graph(self, widget, ctx):
-        width = self.width * 1.
+        width = self.width - 2.
         height = self.height / 6.
 
         context = widget.get_style_context()
@@ -1159,8 +1159,7 @@ class TweenMenuItem(Gtk.MenuItem):
 
         ctx.move_to(1, height * 5)
         for i in range(int(width)):
-            i = float(i + 1)
-            ctx.line_to(i, self.function(i, height * 5, -height * 4, width))
+            ctx.line_to(i + 2, self.function(i + 1., height * 5, -height * 4, width))
         ctx.stroke()
 
     def draw_arr(self, widget, ctx):
@@ -1186,7 +1185,7 @@ class TweenMenuItem(Gtk.MenuItem):
             self.arr_state = -1.
             self.arr.queue_draw()
             self.arr_timer = None
-            self.graph.queue_draw()
+        self.graph.queue_draw()
 
     def next_frame(self):
         self.arr_state += 1

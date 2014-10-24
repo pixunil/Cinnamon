@@ -1090,7 +1090,7 @@ class GSettingsColorChooser(Gtk.ColorButton):
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
-class TweenChooser(PictureChooserButton):
+class TweenChooser(Gtk.Button):
     def __init__(self, schema, key, dep_key):
         super(TweenChooser, self).__init__()
 
@@ -1098,6 +1098,9 @@ class TweenChooser(PictureChooserButton):
         self._key = key
         self.dep_key = dep_key
         self.value = self._schema.get_string(key)
+
+        self.menu = Gtk.Menu()
+        self.connect("button-release-event", self.on_button_clicked)
 
         self.set_label(self.value)
         self.set_size_request(128, -1)
@@ -1139,6 +1142,39 @@ class TweenChooser(PictureChooserButton):
         self.set_label(self.value)
         self._schema.set_string(self._key, self.value)
 
+    #Imports from PictureChooserButton
+    def popup_menu_below_button (self, menu, widget):
+        window = widget.get_window()
+        screen = window.get_screen()
+        monitor = screen.get_monitor_at_window(window)
+
+        warea = screen.get_monitor_workarea(monitor)
+        wrect = widget.get_allocation()
+        mrect = menu.get_allocation()
+
+        unused_var, window_x, window_y = window.get_origin()
+
+        # Position left edge of the menu with the right edge of the button
+        x = window_x + wrect.x + wrect.width
+        # Center the menu vertically with respect to the monitor
+        y = warea.y + (warea.height / 2) - (mrect.height / 2)
+
+        # Now, check if we're still touching the button - we want the right edge
+        # of the button always 100% touching the menu
+
+        if y > (window_y + wrect.y):
+            y = y - (y - (window_y + wrect.y))
+        elif (y + mrect.height) < (window_y + wrect.y + wrect.height):
+            y = y + ((window_y + wrect.y + wrect.height) - (y + mrect.height))
+
+        push_in = True # push_in is True so all menu is always inside screen
+        return (x, y, push_in)
+
+    def on_button_clicked(self, widget, event):
+        if event.button == 1:
+            self.menu.show_all()
+            self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
+
 class TweenMenuItem(Gtk.MenuItem):
     def __init__(self, name):
         super(TweenMenuItem, self).__init__()
@@ -1176,7 +1212,7 @@ class TweenMenuItem(Gtk.MenuItem):
         label.set_text(name)
 
     def draw_graph(self, widget, ctx):
-        width = self.width * 1.
+        width = self.width - 2.
         height = self.height / 6.
 
         context = widget.get_style_context()
@@ -1188,8 +1224,7 @@ class TweenMenuItem(Gtk.MenuItem):
 
         ctx.move_to(1, height * 5)
         for i in range(int(width)):
-            i = float(i + 1)
-            ctx.line_to(i, self.function(i, height * 5, -height * 4, width))
+            ctx.line_to(i + 2, self.function(i + 1., height * 5, -height * 4, width))
         ctx.stroke()
 
     def draw_arr(self, widget, ctx):
@@ -1215,7 +1250,7 @@ class TweenMenuItem(Gtk.MenuItem):
             self.arr_state = -1.
             self.arr.queue_draw()
             self.arr_timer = None
-            self.graph.queue_draw()
+        self.graph.queue_draw()
 
     def next_frame(self):
         self.arr_state += 1
