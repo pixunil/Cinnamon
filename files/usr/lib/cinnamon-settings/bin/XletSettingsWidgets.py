@@ -1148,7 +1148,7 @@ class TweenMenuItem(Gtk.MenuItem):
 
     def draw_graph(self, widget, ctx):
         width = self.width - 2.
-        height = self.height / 6.
+        height = self.height / 8.
 
         context = widget.get_style_context()
         if self.arr_state == -1:
@@ -1157,22 +1157,22 @@ class TweenMenuItem(Gtk.MenuItem):
             c = context.get_color(Gtk.StateFlags.NORMAL)
         ctx.set_source_rgb(c.red, c.green, c.blue)
 
-        ctx.move_to(1, height * 5)
+        ctx.move_to(1, height * 6)
         for i in range(int(width)):
-            ctx.line_to(i + 2, self.function(i + 1., height * 5, -height * 4, width))
+            ctx.line_to(i + 2, self.function(i + 1., height * 6, -height * 4, width))
         ctx.stroke()
 
     def draw_arr(self, widget, ctx):
         if self.arr_state == -1:
             return
         width = self.width * 1.
-        height = self.height / 6.
+        height = self.height / 8.
 
         context = widget.get_style_context()
         c = context.get_color(Gtk.StateFlags.NORMAL)
         ctx.set_source_rgb(c.red, c.green, c.blue)
 
-        ctx.arc(5, self.function(self.arr_state, height * 5, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
+        ctx.arc(5, self.function(self.arr_state, height * 6, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
         ctx.fill()
 
     def start_animation(self, a, b):
