@@ -291,6 +291,15 @@ WindowManager.prototype = {
         } else if (effect == "scale") {                                
             this._minimizing.push(actor);
             this._scaleWindow(cinnamonwm, actor, 0.0, 0.0, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten); 
+        } else if (effect == "move") {
+            let [xDest, yDest] = global.get_pointer();
+
+            actor.set_scale(1, 1);
+            actor.show();
+
+            this._minimizing.push(actor);
+            this._scaleWindow(cinnamonwm, actor, 0, 0, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten);
+            this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten);
         } else {
             cinnamonwm.completed_minimize(actor);
         }
@@ -652,7 +661,7 @@ WindowManager.prototype = {
                     let lastTime = actor.get_meta_window()._cinnamonwm_minimize_time;
                     let myTime = typeof(lastTime) !== "undefined" ? lastTime : time;
                     this._moveWindow(cinnamonwm, actor, xDest, yDest, myTime, myTransition, this._mapWindowDone, this._mapWindowOverwrite);
-                    this._scaleWindow(cinnamonwm, actor, 1.0, 1.0, myTime, myTransition, this._mapWindowDone, this._mapWindowOverwrite, true);
+                    this._scaleWindow(cinnamonwm, actor, 1, 1, myTime, myTransition, this._mapWindowDone, this._mapWindowOverwrite, true);
                     return;
                 }
             } // if window list doesn't support finding an origin
@@ -676,6 +685,24 @@ WindowManager.prototype = {
             actor.show();
             this._mapping.push(actor);
             this._scaleWindow(cinnamonwm, actor, 1, 1, time, transition, this._mapWindowDone, this._mapWindowOverwrite);        
+        }
+        else if (effect == "move") {
+            let [width, height] = actor.get_allocation_box().get_size();
+            let [xDest, yDest] = actor.get_transformed_position();
+            xDest += width /= 2;
+            yDest += height /= 2;
+
+            let [xSrc, ySrc] = global.get_pointer();
+            xSrc -= width;
+            ySrc -= height;
+            actor.set_position(xSrc, ySrc);
+
+            actor.set_scale(0, 0);
+            actor.show();
+
+            this._mapping.push(actor);
+            this._scaleWindow(cinnamonwm, actor, 1, 1, time, transition, this._mapWindowDone, this._mapWindowOverwrite);
+            this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._mapWindowDone, this._mapWindowOverwrite);
         }
         else {   
             this._completeMap(cinnamonwm, actor, orig_opacity);
@@ -780,6 +807,16 @@ WindowManager.prototype = {
                 //Fixes ghost windows bug
             Tweener.removeTweens(actor);
             this._fadeWindow(cinnamonwm, actor, 0, actor.opacity, time, transition, this._destroyWindowDone, this._destroyWindowDone);
+        }
+        else if (effect == "move") {
+            let [xDest, yDest] = global.get_pointer();
+
+            actor.set_scale(1, 1);
+            actor.show();
+
+            this._destroying.push(actor);
+            this._scaleWindow(cinnamonwm, actor, 0, 0, time, transition, this._destroyWindowDone, this._destroyWindowDone);
+            this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._destroyWindowDone, this._destroyWindowDone);
         }
         else {
             cinnamonwm.completed_destroy(actor);

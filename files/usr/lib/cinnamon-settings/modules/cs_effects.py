@@ -64,15 +64,15 @@ class Module:
 
             section = Section(_("Customize Effects"))
             #CLOSING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")], ["fade", _("Fade")]]        
+            effects = [["none", _("None")], ["scale", _("Scale")], ["fade", _("Fade")], ["move", _("Move")]]
             section.add(self.make_effect_group(_("Closing windows:"), "close", effects))
             
             #MAPPING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")], ["fade", _("Fade")]]        
+            effects = [["none", _("None")], ["scale", _("Scale")], ["fade", _("Fade")], ["move", _("Move")]]
             section.add(self.make_effect_group(_("Mapping windows:"), "map", effects))
             
             #MINIMIZING WINDOWS
-            effects = [["none", _("None")], ["traditional", _("Traditional")], ["scale", _("Scale")], ["fade", _("Fade")]]
+            effects = [["none", _("None")], ["traditional", _("Traditional")], ["scale", _("Scale")], ["fade", _("Fade")], ["move", _("Move")]]
             section.add(self.make_effect_group(_("Minimizing windows:"), "minimize", effects))
             
             #MAXIMIZING WINDOWS
