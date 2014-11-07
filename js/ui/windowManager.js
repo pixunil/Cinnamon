@@ -204,14 +204,31 @@ WindowManager.prototype = {
                            onOverwriteParams: [cinnamonwm, actor, orig_opacity]
                             });
     },
-    
-    _scaleWindow: function(cinnamonwm, actor, scale_x, scale_y, time, transition, callbackComplete, callbackOverwrite) {        
-        actor.move_anchor_point_from_gravity(Clutter.Gravity.CENTER);        
+
+    _scaleWindow: function(cinnamonwm, actor, scale_x, scale_y, time, transition, callbackComplete, callbackOverwrite, keepAnchorPoint) {
+        if (!keepAnchorPoint)
+            actor.move_anchor_point_from_gravity(Clutter.Gravity.CENTER);
+
         Tweener.addTween(actor,
                          { scale_x: scale_x,     
                            scale_y: scale_y,                          
                            time: time,
                            min: 0,
+                           transition: transition,
+                           onComplete: callbackComplete,
+                           onCompleteScope: this,
+                           onCompleteParams: [cinnamonwm, actor, actor.opacity],
+                           onOverwrite: callbackOverwrite,
+                           onOverwriteScope: this,
+                           onOverwriteParams: [cinnamonwm, actor, actor.opacity]
+                            });
+    },
+
+    _moveWindow: function(cinnamonwm, actor, x, y, time, transition, callbackComplete, callbackOverwrite) {
+        Tweener.addTween(actor,
+                         { x: x,
+                           y: y,
+                           time: time,
                            transition: transition,
                            onComplete: callbackComplete,
                            onCompleteScope: this,
@@ -260,21 +277,8 @@ WindowManager.prototype = {
                     actor.get_meta_window()._cinnamonwm_has_origin = true;
                     actor.get_meta_window()._cinnamonwm_minimize_transition = transition;
                     actor.get_meta_window()._cinnamonwm_minimize_time = time;
-                    Tweener.addTween(actor,
-                                     { scale_x: 0.0,
-                                       scale_y: 0.0,
-                                       x: xDest,
-                                       y: yDest,
-                                       time: time,
-                                       min: 0,
-                                       transition: transition,
-                                       onComplete: this._minimizeWindowDone,
-                                       onCompleteScope: this,
-                                       onCompleteParams: [cinnamonwm, actor, actor.opacity],
-                                       onOverwrite: this._minimizeWindowOverwritten,
-                                       onOverwriteScope: this,
-                                       onOverwriteParams: [cinnamonwm, actor, actor.opacity]
-                                     });
+                    this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten);
+                    this._scaleWindow(cinnamonwm, actor, 0.0, 0.0, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten, true);
                     return; // done
                 }
             }
@@ -345,19 +349,7 @@ WindowManager.prototype = {
 
             actor.move_anchor_point(anchor_x, anchor_y);
 
-            Tweener.addTween(actor,
-                         { scale_x: scale_x,
-                           scale_y: scale_y,
-                           time: time,
-                           min: 0,
-                           transition: transition,
-                           onComplete: this._tileWindowDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [cinnamonwm, actor, actor.opacity],
-                           onOverwrite: this._tileWindowOverwrite,
-                           onOverwriteScope: this,
-                           onOverwriteParams: [cinnamonwm, actor, actor.opacity]
-                            });
+            this._scaleWindow(cinnamonwm, actor, scale_x, scale_y, time, transition, this._tileWindowDone, this._tileWindowOverwrite, true);
         }
         else {
             cinnamonwm.completed_tile(actor);
@@ -416,21 +408,9 @@ WindowManager.prototype = {
             let anchor_x = (actor.x - targetX) * actor.width / (targetWidth - actor.width);
             let anchor_y = (actor.y - targetY) * actor.height / (targetHeight - actor.height);
 
-            actor.move_anchor_point(anchor_x, anchor_y);   
-                 
-            Tweener.addTween(actor,
-                         { scale_x: scale_x, 
-                           scale_y: scale_y,                                            
-                           time: time,
-                           min: 0,
-                           transition: transition,
-                           onComplete: this._maximizeWindowDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [cinnamonwm, actor, actor.opacity],
-                           onOverwrite: this._maximizeWindowOverwrite,
-                           onOverwriteScope: this,
-                           onOverwriteParams: [cinnamonwm, actor, actor.opacity]
-                            });
+            actor.move_anchor_point(anchor_x, anchor_y);
+
+            this._scaleWindow(cinnamonwm, actor, scale_x, scale_y, time, transition, this._maximizeWindowDone, this._maximizeWindowOverwrite, true);
         }
         else {
             cinnamonwm.completed_maximize(actor);
@@ -492,20 +472,7 @@ WindowManager.prototype = {
 
             actor.move_anchor_point(anchor_x, anchor_y);
 
-            Tweener.addTween(actor,
-                         { scale_x: scale_x,
-                           scale_y: scale_y,
-                           time: time,
-                           min: 0,
-                           transition: transition,
-                           onComplete: this._unmaximizeWindowDone,
-                           onCompleteScope: this,
-                           onCompleteParams: [cinnamonwm, actor, actor.opacity],
-                           onOverwrite: this._unmaximizeWindowOverwrite,
-                           onOverwriteScope: this,
-                           onOverwriteParams: [cinnamonwm, actor, actor.opacity]
-                            });
-
+            this._scaleWindow(cinnamonwm, actor, scale_x, scale_y, time, transition, this._unmaximizeWindowDone, this._unmaximizeWindowOverwrite, true);
         }
         else {
             cinnamonwm.completed_unmaximize(actor);
@@ -684,21 +651,8 @@ WindowManager.prototype = {
                     let myTransition = actor.get_meta_window()._cinnamonwm_minimize_transition||transition;
                     let lastTime = actor.get_meta_window()._cinnamonwm_minimize_time;
                     let myTime = typeof(lastTime) !== "undefined" ? lastTime : time;
-                    Tweener.addTween(actor,
-                                     { scale_x: 1.0,
-                                       scale_y: 1.0,
-                                       x: xDest,
-                                       y: yDest,
-                                       time: myTime,
-                                       min: 0,
-                                       transition: myTransition,
-                                       onComplete: this._mapWindowDone,
-                                       onCompleteScope: this,
-                                       onCompleteParams: [cinnamonwm, actor, actor.opacity],
-                                       onOverwrite: this._mapWindowOverwrite,
-                                       onOverwriteScope: this,
-                                       onOverwriteParams: [cinnamonwm, actor, actor.opacity]
-                                     });
+                    this._moveWindow(cinnamonwm, actor, xDest, yDest, myTime, myTransition, this._mapWindowDone, this._mapWindowOverwrite);
+                    this._scaleWindow(cinnamonwm, actor, 1.0, 1.0, myTime, myTransition, this._mapWindowDone, this._mapWindowOverwrite, true);
                     return;
                 }
             } // if window list doesn't support finding an origin
