@@ -300,6 +300,16 @@ WindowManager.prototype = {
             this._minimizing.push(actor);
             this._scaleWindow(cinnamonwm, actor, 0, 0, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten);
             this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten);
+        } else if (effect === "fly-up" || effect === "fly-down") {
+            let xDest = actor.get_transformed_position()[0], yDest;
+
+            if (effect === "fly-up")
+                yDest = -actor.get_allocation_box().get_height();
+            else
+                yDest = global.stage.get_height();
+
+            this._minimizing.push(actor);
+            this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._minimizeWindowDone, this._minimizeWindowOverwritten);
         } else {
             cinnamonwm.completed_minimize(actor);
         }
@@ -704,7 +714,22 @@ WindowManager.prototype = {
             this._scaleWindow(cinnamonwm, actor, 1, 1, time, transition, this._mapWindowDone, this._mapWindowOverwrite);
             this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._mapWindowDone, this._mapWindowOverwrite);
         }
-        else {   
+        else if (effect === "fly-up" || effect === "fly-down") {
+            let [xDest, yDest] = actor.get_transformed_position();
+            let ySrc;
+
+            if (effect === "fly-up")
+                ySrc = global.stage.get_height();
+            else
+                ySrc = -actor.get_allocation_box().get_height();
+
+            actor.set_position(xDest, ySrc);
+            actor.show();
+
+            this._mapping.push(actor);
+            this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._mapWindowDone, this._mapWindowOverwrite);
+        }
+        else {
             this._completeMap(cinnamonwm, actor, orig_opacity);
         }
         
@@ -816,6 +841,17 @@ WindowManager.prototype = {
 
             this._destroying.push(actor);
             this._scaleWindow(cinnamonwm, actor, 0, 0, time, transition, this._destroyWindowDone, this._destroyWindowDone);
+            this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._destroyWindowDone, this._destroyWindowDone);
+        }
+        else if (effect === "fly-up" || effect === "fly-down") {
+            let xDest = actor.get_transformed_position()[0], yDest;
+
+            if (effect === "fly-up")
+                yDest = -actor.get_allocation_box().get_height();
+            else
+                yDest = global.stage.get_height();
+
+            this._destroying.push(actor);
             this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, this._destroyWindowDone, this._destroyWindowDone);
         }
         else {
