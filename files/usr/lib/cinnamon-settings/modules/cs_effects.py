@@ -71,7 +71,7 @@ class Module:
         w = GSettingsComboBox("", root, template % (key, "effect"), path, effects)
         self.size_groups[1].add_widget(w)
         box.add(w)
-        w = TweenChooser(root, template % (key, "transition"), path)
+        w = TweenChooserButton(root, template % (key, "transition"), path)
         self.size_groups[2].add_widget(w)
         box.add(w)
         w = GSettingsSpinButton("", root, template % (key, "time"), path, tmin, tmax, tstep, tdefault, _("milliseconds"))

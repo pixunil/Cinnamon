@@ -92,15 +92,9 @@ class EditableEntry (Gtk.Notebook):
     def get_text(self):
         return self.entry.get_text()
 
-class PictureChooserButton (Gtk.Button):
-
-    def __init__ (self, num_cols=4, button_picture_size=None, menu_pictures_size=None, has_button_label=False):        
-        super(PictureChooserButton, self).__init__()
-        self.num_cols = num_cols
-        self.button_picture_size = button_picture_size
-        self.menu_pictures_size = menu_pictures_size
-        self.row = 0
-        self.col = 0
+class BaseChooserButton(Gtk.Button):
+    def __init__ (self, has_button_label=False):
+        super(BaseChooserButton, self).__init__()
         self.menu = Gtk.Menu()
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         self.button_image = Gtk.Image()
@@ -110,6 +104,47 @@ class PictureChooserButton (Gtk.Button):
             self.button_box.add(self.button_label)
         self.add(self.button_box)
         self.connect("button-release-event", self._on_button_clicked)
+
+    def popup_menu_below_button (self, menu, widget):
+        window = widget.get_window()
+        screen = window.get_screen()
+        monitor = screen.get_monitor_at_window(window)
+
+        warea = screen.get_monitor_workarea(monitor)
+        wrect = widget.get_allocation()
+        mrect = menu.get_allocation()
+
+        unused_var, window_x, window_y = window.get_origin()
+
+        # Position left edge of the menu with the right edge of the button
+        x = window_x + wrect.x + wrect.width
+        # Center the menu vertically with respect to the monitor
+        y = warea.y + (warea.height / 2) - (mrect.height / 2)
+
+        # Now, check if we're still touching the button - we want the right edge
+        # of the button always 100% touching the menu
+
+        if y > (window_y + wrect.y):
+            y = y - (y - (window_y + wrect.y))
+        elif (y + mrect.height) < (window_y + wrect.y + wrect.height):
+            y = y + ((window_y + wrect.y + wrect.height) - (y + mrect.height))
+
+        push_in = True # push_in is True so all menu is always inside screen
+        return (x, y, push_in)
+
+    def _on_button_clicked(self, widget, event):
+        if event.button == 1:
+            self.menu.show_all()
+            self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
+
+class PictureChooserButton(BaseChooserButton):
+    def __init__ (self, num_cols=4, button_picture_size=None, menu_pictures_size=None, has_button_label=False):
+        super(PictureChooserButton, self).__init__(has_button_label)
+        self.num_cols = num_cols
+        self.button_picture_size = button_picture_size
+        self.menu_pictures_size = menu_pictures_size
+        self.row = 0
+        self.col = 0
         self.progress = 0.0
 
         context = self.get_style_context()
@@ -159,38 +194,6 @@ class PictureChooserButton (Gtk.Button):
 
     def set_button_label(self, label):
         self.button_label.set_markup(label)
-
-    def popup_menu_below_button (self, menu, widget):  
-        window = widget.get_window()
-        screen = window.get_screen()
-        monitor = screen.get_monitor_at_window(window)
-
-        warea = screen.get_monitor_workarea(monitor)
-        wrect = widget.get_allocation()
-        mrect = menu.get_allocation()
-
-        unused_var, window_x, window_y = window.get_origin()
-
-        # Position left edge of the menu with the right edge of the button
-        x = window_x + wrect.x + wrect.width
-        # Center the menu vertically with respect to the monitor
-        y = warea.y + (warea.height / 2) - (mrect.height / 2)
-
-        # Now, check if we're still touching the button - we want the right edge
-        # of the button always 100% touching the menu
-
-        if y > (window_y + wrect.y):
-            y = y - (y - (window_y + wrect.y))
-        elif (y + mrect.height) < (window_y + wrect.y + wrect.height):
-            y = y + ((window_y + wrect.y + wrect.height) - (y + mrect.height))
-
-        push_in = True # push_in is True so all menu is always inside screen
-        return (x, y, push_in)
-
-    def _on_button_clicked(self, widget, event):
-        if event.button == 1:
-            self.menu.show_all()
-            self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
 
     def _on_picture_selected(self, menuitem, path, callback, id=None):
         if id is not None:
@@ -1090,17 +1093,14 @@ class GSettingsColorChooser(Gtk.ColorButton):
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
-class TweenChooser(Gtk.Button):
+class TweenChooserButton(BaseChooserButton):
     def __init__(self, schema, key, dep_key):
-        super(TweenChooser, self).__init__()
+        super(TweenChooserButton, self).__init__()
 
         self._schema = Gio.Settings.new(schema)
         self._key = key
         self.dep_key = dep_key
         self.value = self._schema.get_string(key)
-
-        self.menu = Gtk.Menu()
-        self.connect("button-release-event", self.on_button_clicked)
 
         self.set_label(self.value)
         self.set_size_request(128, -1)
@@ -1141,39 +1141,6 @@ class TweenChooser(Gtk.Button):
         self.value = widget.name
         self.set_label(self.value)
         self._schema.set_string(self._key, self.value)
-
-    #Imports from PictureChooserButton
-    def popup_menu_below_button (self, menu, widget):
-        window = widget.get_window()
-        screen = window.get_screen()
-        monitor = screen.get_monitor_at_window(window)
-
-        warea = screen.get_monitor_workarea(monitor)
-        wrect = widget.get_allocation()
-        mrect = menu.get_allocation()
-
-        unused_var, window_x, window_y = window.get_origin()
-
-        # Position left edge of the menu with the right edge of the button
-        x = window_x + wrect.x + wrect.width
-        # Center the menu vertically with respect to the monitor
-        y = warea.y + (warea.height / 2) - (mrect.height / 2)
-
-        # Now, check if we're still touching the button - we want the right edge
-        # of the button always 100% touching the menu
-
-        if y > (window_y + wrect.y):
-            y = y - (y - (window_y + wrect.y))
-        elif (y + mrect.height) < (window_y + wrect.y + wrect.height):
-            y = y + ((window_y + wrect.y + wrect.height) - (y + mrect.height))
-
-        push_in = True # push_in is True so all menu is always inside screen
-        return (x, y, push_in)
-
-    def on_button_clicked(self, widget, event):
-        if event.button == 1:
-            self.menu.show_all()
-            self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
 
 class TweenMenuItem(Gtk.MenuItem):
     def __init__(self, name):
