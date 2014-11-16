@@ -31,27 +31,49 @@ class Module:
 
             section = Section(_("Customize Effects"))
             #CLOSING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")], ["fade", _("Fade")], ["move", _("Move")], ["fly-up", _("Fly up")], ["fly-down", _("Fly down")]]
+            effects = [
+                ["none", _("None"), "Base"],
+                ["scale", _("Scale"), "ScaleOut"],
+                ["fade", _("Fade"), "FadeOut"],
+                ["move", _("Move"), "MoveOut"],
+                ["fly-up", _("Fly up"), "FlyUpOut"],
+                ["fly-down", _("Fly down"), "FlyDownOut"]
+            ]
             section.add(self.make_effect_group(_("Closing windows:"), "close", effects))
             
             #MAPPING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")], ["fade", _("Fade")], ["move", _("Move")], ["fly-up", _("Fly up")], ["fly-down", _("Fly down")]]
+            effects = [
+                ["none", _("None"), "Base"],
+                ["scale", _("Scale"), "ScaleIn"],
+                ["fade", _("Fade"), "FadeIn"],
+                ["move", _("Move"), "MoveIn"],
+                ["fly-up", _("Fly up"), "FlyUpIn"],
+                ["fly-down", _("Fly down"), "FlyDownIn"]
+            ]
             section.add(self.make_effect_group(_("Mapping windows:"), "map", effects))
             
             #MINIMIZING WINDOWS
-            effects = [["none", _("None")], ["traditional", _("Traditional")], ["scale", _("Scale")], ["fade", _("Fade")], ["move", _("Move")], ["fly-up", _("Fly up")], ["fly-down", _("Fly down")]]
+            effects = [
+                ["none", _("None"), "Base"],
+                ["traditional", _("Traditional"), "Traditional"],
+                ["scale", _("Scale"), "ScaleOut"],
+                ["fade", _("Fade"), "FadeOut"],
+                ["move", _("Move"), "MoveOut"],
+                ["fly-up", _("Fly up"), "FlyUpOut"],
+                ["fly-down", _("Fly down"), "FlyDownOut"]
+            ]
             section.add(self.make_effect_group(_("Minimizing windows:"), "minimize", effects))
             
             #MAXIMIZING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")]]        
+            effects = [["none", _("None"), "BaseMax"], ["scale", _("Scale"), "ScaleMax"]]
             section.add(self.make_effect_group(_("Maximizing windows:"), "maximize", effects))
             
             #UNMAXIMIZING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")]]
+            effects = [["none", _("None"), "Base"], ["scale", _("Scale"), "ScaleUnMax"]]
             section.add(self.make_effect_group(_("Unmaximizing windows:"), "unmaximize", effects))
 
             #TILING WINDOWS
-            effects = [["none", _("None")], ["scale", _("Scale")]]
+            effects = [["none", _("None"), "BaseMax"], ["scale", _("Scale"), "ScaleMax"]]
             section.add(self.make_effect_group(_("Tiling and snapping windows:"), "tile", effects))
             
             vbox.add(section)
@@ -68,12 +90,13 @@ class Module:
         label.props.xalign = 0.0
         self.size_groups[0].add_widget(label)
         box.add(label)
-        w = GSettingsComboBox("", root, template % (key, "effect"), path, effects)
+        w = EffectChooserButton(root, template % (key, "effect"), path, effects)
         self.size_groups[1].add_widget(w)
         box.add(w)
-        w = TweenChooserButton(root, template % (key, "transition"), path)
-        self.size_groups[2].add_widget(w)
-        box.add(w)
+        t = TweenChooserButton(root, template % (key, "transition"), path)
+        self.size_groups[2].add_widget(t)
+        box.add(t)
+        w.bind_transition(template % (key, "transition"))
         w = GSettingsSpinButton("", root, template % (key, "time"), path, tmin, tmax, tstep, tdefault, _("milliseconds"))
         self.size_groups[3].add_widget(w)
         box.add(w)

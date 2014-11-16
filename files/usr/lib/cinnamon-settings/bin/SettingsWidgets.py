@@ -24,6 +24,7 @@ try:
     import math
     import subprocess
     import tweenEquations
+    import windowEffects
     from threading import Timer
 
 except Exception, detail:
@@ -1092,6 +1093,83 @@ class GSettingsColorChooser(Gtk.ColorButton):
             self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
+
+class EffectChooserButton(BaseChooserButton):
+    def __init__(self, schema, key, dep_key, options):
+        super(EffectChooserButton, self).__init__()
+
+        self._schema = Gio.Settings.new(schema)
+        self._key = key
+        self.dep_key = dep_key
+        self.value = self._schema.get_string(key)
+
+        col = 0
+        row = 0
+        for i in options:
+            self.build_menuitem(i, col, row)
+            if i[0] == self.value:
+                self.set_label(i[1])
+            col += 1
+            if col >= 4:
+                col = 0
+                row += 1
+
+        self.set_size_request(72, -1)
+
+        self.dependency_invert = False
+        if self.dep_key is not None:
+            if self.dep_key[0] == '!':
+                self.dependency_invert = True
+                self.dep_key = self.dep_key[1:]
+            split = self.dep_key.split('/')
+            self.dep_settings = Gio.Settings.new(split[0])
+            self.dep_key = split[1]
+            self.dep_settings.connect("changed::" + self.dep_key, self.on_dependency_setting_changed)
+            self.on_dependency_setting_changed(self, None)
+
+    def on_dependency_setting_changed(self, settings, dep_key):
+        if not self.dependency_invert:
+            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
+        else:
+            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
+
+    def build_menuitem(self, option, col, row):
+        menuitem = EffectMenuItem(option[0], option[1], option[2])
+        menuitem.connect("activate", self.change_value)
+        self.menu.attach(menuitem, col, col + 1, row, row + 1)
+
+    def change_value(self, widget):
+        self.value = widget.value
+        self.set_label(widget.name)
+        self._schema.set_string(self._key, self.value)
+
+    def bind_transition(self, transition_key):
+        self._schema.connect("changed::" + transition_key, self.update_transition)
+        self.update_transition(self._schema, transition_key)
+
+    def update_transition(self, settings, key):
+        transition = settings.get_string(key)
+        for item in self.menu.get_children():
+            item.graph.transition = eval("tweenEquations." + transition)
+
+class EffectMenuItem(Gtk.MenuItem):
+    def __init__(self, value, name, effect):
+        super(EffectMenuItem, self).__init__()
+
+        self.value = value
+        self.name = name
+
+        self.vbox = Gtk.VBox()
+        self.add(self.vbox)
+
+        self.graph = eval("windowEffects.%s()" % effect)
+        self.connect("enter-notify-event", self.graph.start)
+        self.connect("leave-notify-event", self.graph.stop)
+        self.vbox.add(self.graph)
+
+        label = Gtk.Label()
+        self.vbox.add(label)
+        label.set_text(name)
 
 class TweenChooserButton(BaseChooserButton):
     def __init__(self, schema, key, dep_key):
