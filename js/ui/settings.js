@@ -98,6 +98,18 @@ var STRING_TYPES = {
     }
 };
 
+var OBJECT_TYPES = {
+    "fontchooser": {
+        "required-fields": [
+            "type",
+            "description"
+        ],
+        "required-objects": {
+            "default": ["family", "size"]
+        }
+    }
+}
+
 var NUMBER_TYPES = {
     "spinbutton" : {
         "required-fields": [
@@ -311,6 +323,27 @@ _provider.prototype = {
                     }
                 }
                 return true;
+            } else if (node["type"] in OBJECT_TYPES) {
+                global.log("00");
+                for (let req_field in OBJECT_TYPES[node["type"]]["required-fields"]) {
+                    if (OBJECT_TYPES[node["type"]]["required-fields"][req_field] in node)
+                        continue;
+                    return false;
+                }
+                global.log("01");
+                for (let req_field in OBJECT_TYPES[node["type"]]["required-objects"]) {
+                    if (req_field in node){
+                        let req_keys = OBJECT_TYPES[node["type"]]["required-objects"][req_field];
+                        for (let req_key in req_keys) {
+                            global.log(req_keys[req_key]);
+                            if (req_keys[req_key] in node[req_field])
+                                continue
+                            return false;
+                        }
+                    }   else
+                        return false;
+                }
+                return true;
             } else if (node["type"] in NUMBER_TYPES) {
                 for (let req_field in NUMBER_TYPES[node["type"]]["required-fields"]) {
                     if (NUMBER_TYPES[node["type"]]["required-fields"][req_field] in node) {
@@ -492,7 +525,7 @@ _provider.prototype = {
             if (!applet_callback)
                 applet_callback = function() {};
             if (type) {
-                if (type in BOOLEAN_TYPES || type in STRING_TYPES || type in NUMBER_TYPES) {
+                if (type in BOOLEAN_TYPES || type in STRING_TYPES || type in OBJECT_TYPES || type in NUMBER_TYPES) {
                     this.metaBindings[key_name] = new _setting(sync_type, this.xlet, key_name, this.settings_obj, applet_var, Lang.bind (this.xlet, applet_callback), user_data);
                     return true;
                 } else {

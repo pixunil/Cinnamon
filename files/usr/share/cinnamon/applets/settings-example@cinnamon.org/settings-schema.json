@@ -82,5 +82,13 @@
     "type" : "keybinding",
     "description" : "Set the keybinding here to activate an action: ",
     "default" : "<Control>F8"
+ },
+ "font" : {
+    "type" : "fontchooser",
+    "description" : "Choose a font: ",
+    "default" : {
+        "family" : "Arial",
+        "size" : 8
+    }
  }
 }

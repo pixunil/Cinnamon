@@ -10,7 +10,7 @@ try:
     import json
     import dbus
     import eyedropper
-    from gi.repository import Gio, Gtk, GObject, Gdk, GdkPixbuf
+    from gi.repository import Gio, Gtk, GObject, Gdk, GdkPixbuf, Pango
 except Exception, detail:
     print detail
     sys.exit(1)
@@ -28,6 +28,7 @@ setting_dict = {
     "scale"           :   "Scale",
     "combobox"        :   "ComboBox",
     "colorchooser"    :   "ColorChooser",
+    "fontchooser"     :   "FontChooser",
     "radiogroup"      :   "RadioGroup",
     "iconfilechooser" :   "IconFileChooser",
     "keybinding"      :   "Keybinding",
@@ -636,6 +637,63 @@ class ColorChooser(Gtk.HBox, BaseWidget):
 
     def update_dep_state(self, active):
         self.chooser.set_sensitive(active)
+
+class FontChooser(Gtk.HBox, BaseWidget):
+    def __init__(self, key, settings_obj, uuid):
+        BaseWidget.__init__(self, key, settings_obj, uuid)
+        super(FontChooser, self).__init__()
+        self.label = Gtk.Label.new(self.get_desc())
+        self.chooser = Gtk.FontButton()
+
+        self.set_font()
+
+        self.pack_start(self.label, False, False, 2)
+        self.pack_start(self.chooser, False, False, 2)
+        set_tt(self.get_tooltip(), self.label, self.chooser)
+        self.handler = self.chooser.connect("font-set", self.on_my_value_changed)
+
+    def on_my_value_changed(self, *args):
+        font = Pango.FontDescription.from_string(self.chooser.get_font_name())
+        value = {}
+        value["family"] = font.get_family()
+        value["style"] = int(font.get_style())
+        value["weight"] = int(font.get_weight())
+        value["size"] = font.get_size() / 1024
+
+        self.set_val(value)
+
+        font.set_size(value["size"] * 1024) #don't show float numbers as size
+        #self.chooser.handler_block(self.handler) #don't update twice
+        self.chooser.set_font_name(font.to_string())
+        #elf.chooser.handler_unblock(self.handler)
+
+
+    def set_font(self):
+        value = self.get_val()
+        font = Pango.FontDescription()
+        font.set_family(value["family"])
+        font.set_style(value["style"])
+        font.set_weight(value["weight"])
+        font.set_size(value["size"] * 1024)
+
+        self.chooser.set_font_name(font.to_string())
+
+    def get_val(self):
+        value = super(FontChooser, self).get_val()
+        #make sure we have the properties style and weight
+        if "style" not in value:
+            value["style"] = int(Pango.Style.NORMAL)
+        if "weight" not in value:
+            value["weight"] = int(Pango.Weight.NORMAL)
+
+        return value
+
+    def on_settings_file_changed(self):
+        self.set_font()
+
+    def update_dep_state(self, active):
+        self.chooser.set_sensitive(active)
+
 
 class ComboBox(Gtk.HBox, BaseWidget):
     def __init__(self, key, settings_obj, uuid):
