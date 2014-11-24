@@ -684,6 +684,7 @@ WindowManager.prototype = {
 
         let orig_opacity = actor.opacity;
         if (effect == "fade") {            
+            global.log("orig_opacity: " + orig_opacity);
             this._mapping.push(actor);
 
             actor.opacity = 0;
