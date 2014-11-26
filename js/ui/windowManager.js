@@ -184,7 +184,7 @@ WindowManager.prototype = {
     },
 
 
-    _fadeWindow: function(cinnamonwm, actor, opacity, orig_opacity, time, transition, name) {
+    _fadeWindow: function(cinnamonwm, actor, opacity, time, transition, name) {
         actor.move_anchor_point_from_gravity(Clutter.Gravity.CENTER);
         Tweener.addTween(actor,
                          { opacity: opacity,
@@ -194,10 +194,10 @@ WindowManager.prototype = {
                            transition: transition,
                            onComplete: this._windowTweenDone,
                            onCompleteScope: this,
-                           onCompleteParams: [cinnamonwm, name, actor, orig_opacity],
+                           onCompleteParams: [cinnamonwm, name, actor],
                            onOverwrite: this._windowTweenOverwrite,
                            onOverwriteScope: this,
-                           onOverwriteParams: [cinnamonwm, name, actor, orig_opacity]
+                           onOverwriteParams: [cinnamonwm, name, actor]
                             });
     },
 
@@ -213,10 +213,10 @@ WindowManager.prototype = {
                            transition: transition,
                            onComplete: this._windowTweenDone,
                            onCompleteScope: this,
-                           onCompleteParams: [cinnamonwm, name, actor, actor.opacity],
+                           onCompleteParams: [cinnamonwm, name, actor],
                            onOverwrite: this._windowTweenOverwrite,
                            onOverwriteScope: this,
-                           onOverwriteParams: [cinnamonwm, name, actor, actor.opacity]
+                           onOverwriteParams: [cinnamonwm, name, actor]
                             });
     },
 
@@ -228,14 +228,14 @@ WindowManager.prototype = {
                            transition: transition,
                            onComplete: this._windowTweenDone,
                            onCompleteScope: this,
-                           onCompleteParams: [cinnamonwm, name, actor, actor.opacity],
+                           onCompleteParams: [cinnamonwm, name, actor],
                            onOverwrite: this._windowTweenOverwrite,
                            onOverwriteScope: this,
-                           onOverwriteParams: [cinnamonwm, name, actor, actor.opacity]
+                           onOverwriteParams: [cinnamonwm, name, actor]
                             });
     },
 
-    _windowTweenDone: function(cinnamonwm, name, actor, orig_opacity){
+    _windowTweenDone: function(cinnamonwm, name, actor){
         let prop = EFFECT_TYPES[name];
         //prop will be an array: [<internal array name>, <windowmanager complete function name>, <show actor>?]
         if (this._removeEffect(this[prop[0]], actor)) {
@@ -248,15 +248,16 @@ WindowManager.prototype = {
                 }
             } else {
                 actor.set_scale(1, 1);
-                actor.opacity = orig_opacity;
-                global.log(orig_opacity);
+                let orig_opacity = actor.get_meta_window()._cinnamonwm_orig_opacity;
+                if(orig_opacity)
+                    actor.opacity = orig_opacity;
                 actor.move_anchor_point_from_gravity(Clutter.Gravity.NORTH_WEST);
                 if(prop[2]) actor.show();
             }
             cinnamonwm[prop[1]](actor);
         }
     },
-    _windowTweenOverwrite: function(cinnamonwm, name, actor, orig_opacity){
+    _windowTweenOverwrite: function(cinnamonwm, name, actor){
         let prop = EFFECT_TYPES[name];
         if (this._removeEffect(this[prop[0]], actor)) {
             Tweener.removeTweens(actor);
@@ -267,7 +268,9 @@ WindowManager.prototype = {
                     actor._parentDestroyId = 0;
                 }
             } else {
-                actor.opacity = orig_opacity;
+                let orig_opacity = actor.get_meta_window()._cinnamonwm_orig_opacity;
+                if(orig_opacity)
+                    actor.opacity = orig_opacity;
                 if(prop[2]) actor.show();
             }
             cinnamonwm[prop[1]](actor);
@@ -278,7 +281,7 @@ WindowManager.prototype = {
         let opacity = actor.orig_opactity || 255;
 
         for(let i in EFFECT_TYPES){
-            this._windowTweenDone(cinnamonwm, i, actor, actor.opacity);
+            this._windowTweenDone(cinnamonwm, i, actor);
         }
     },
 
@@ -330,7 +333,8 @@ WindowManager.prototype = {
 
         if (effect == "fade") {
             this._minimizing.push(actor);
-            this._fadeWindow(cinnamonwm, actor, 0, actor.opacity, time, transition, "minimize");
+            actor.get_meta_window()._cinnamonwm_orig_opacity = actor.opacity;
+            this._fadeWindow(cinnamonwm, actor, 0, time, transition, "minimize");
         } else if (effect == "scale") {
             this._minimizing.push(actor);
             this._scaleWindow(cinnamonwm, actor, 0, 0, time, transition, "minimize");
@@ -593,10 +597,10 @@ WindowManager.prototype = {
                                    transition: "easeOutQuad",
                                    onComplete: this._windowTweenDone,
                                    onCompleteScope: this,
-                                   onCompleteParams: [cinnamonwm, "map", actor, 255],
+                                   onCompleteParams: [cinnamonwm, "map", actor],
                                    onOverwrite: this._windowTweenOverwrite,
                                    onOverwriteScope: this,
-                                   onOverwriteParams: [cinnamonwm, "map", actor, 255]
+                                   onOverwriteParams: [cinnamonwm, "map", actor]
                                  });
                 return;
             }
@@ -604,7 +608,7 @@ WindowManager.prototype = {
             return;
         }
         if (!this._shouldAnimate(actor)) {
-            this._windowTweenDone(cinnamonwm, "map", actor, actor.opacity);
+            this._windowTweenDone(cinnamonwm, "map", actor);
             return;
         }
 
@@ -657,13 +661,14 @@ WindowManager.prototype = {
             }
         }
 
-        let orig_opacity = actor.opacity;
         if (effect == "fade") {
             this._mapping.push(actor);
+            let orig_opacity = actor.opacity;
+            actor.get_meta_window()._cinnamonwm_orig_opacity = orig_opacity;
 
             actor.opacity = 0;
             actor.show();
-            this._fadeWindow(cinnamonwm, actor, orig_opacity, orig_opacity, time, transition, "map");
+            this._fadeWindow(cinnamonwm, actor, orig_opacity, time, transition, "map");
         }
         else if (effect == "scale") {
             actor.set_scale(0.0, 0.0);
@@ -705,7 +710,7 @@ WindowManager.prototype = {
             this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition, "map");
         }
         else {
-            this._windowTweenDone(cinnamonwm, "map", actor, orig_opacity);
+            this._windowTweenDone(cinnamonwm, "map", actor);
         }
 
     },
@@ -741,7 +746,7 @@ WindowManager.prototype = {
             actor.show();
             this._destroying.push(actor);
 
-            actor._parentDestroyId = parent.connect('unmanaged', Lang.bind(this, this._windowTweenDone, cinnamonwm, "close", actor, actor.opacity));
+            actor._parentDestroyId = parent.connect('unmanaged', Lang.bind(this, this._windowTweenDone, cinnamonwm, "close", actor));
 
             Tweener.removeTweens(actor);
             Tweener.addTween(actor,
@@ -750,10 +755,10 @@ WindowManager.prototype = {
                                transition: "easeOutQuad",
                                onComplete: this._windowTweenDone,
                                onCompleteScope: this,
-                               onCompleteParams: [cinnamonwm, "close", actor, actor.opacity],
+                               onCompleteParams: [cinnamonwm, "close", actor],
                                onOverwrite: this._windowTweenOverwrite,
                                onOverwriteScope: this,
-                               onOverwriteParams: [cinnamonwm, "close", actor, actor.opacity]
+                               onOverwriteParams: [cinnamonwm, "close", actor]
                              });
             return;
         }
@@ -783,7 +788,7 @@ WindowManager.prototype = {
             this._destroying.push(actor);
                 //Fixes ghost windows bug
             Tweener.removeTweens(actor);
-            this._fadeWindow(cinnamonwm, actor, 0, actor.opacity, time, transition, "close");
+            this._fadeWindow(cinnamonwm, actor, 0, time, transition, "close");
         }
         else if (effect == "move") {
             let [xDest, yDest] = global.get_pointer();
