@@ -36,8 +36,8 @@ class Module:
                 ["scale", _("Scale"), "ScaleOut"],
                 ["fade", _("Fade"), "FadeOut"],
                 ["move", _("Move"), "MoveOut"],
-                ["fly-up", _("Fly up"), "FlyUpOut"],
-                ["fly-down", _("Fly down"), "FlyDownOut"]
+                ["flyUp", _("Fly up"), "FlyUpOut"],
+                ["flyDown", _("Fly down"), "FlyDownOut"]
             ]
             section.add(self.make_effect_group(_("Closing windows:"), "close", effects))
             
@@ -47,8 +47,8 @@ class Module:
                 ["scale", _("Scale"), "ScaleIn"],
                 ["fade", _("Fade"), "FadeIn"],
                 ["move", _("Move"), "MoveIn"],
-                ["fly-up", _("Fly up"), "FlyUpIn"],
-                ["fly-down", _("Fly down"), "FlyDownIn"]
+                ["flyUp", _("Fly up"), "FlyUpIn"],
+                ["flyDown", _("Fly down"), "FlyDownIn"]
             ]
             section.add(self.make_effect_group(_("Mapping windows:"), "map", effects))
             
@@ -59,8 +59,8 @@ class Module:
                 ["scale", _("Scale"), "ScaleOut"],
                 ["fade", _("Fade"), "FadeOut"],
                 ["move", _("Move"), "MoveOut"],
-                ["fly-up", _("Fly up"), "FlyUpOut"],
-                ["fly-down", _("Fly down"), "FlyDownOut"]
+                ["flyUp", _("Fly up"), "FlyUpOut"],
+                ["flyDown", _("Fly down"), "FlyDownOut"]
             ]
             section.add(self.make_effect_group(_("Minimizing windows:"), "minimize", effects))
             
