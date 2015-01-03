@@ -28,10 +28,7 @@ Effect.prototype = {
             transition: transition,
             onComplete: this.wm._endWindowEffect,
             onCompleteScope: this.wm,
-            onCompleteParams: [cinnamonwm, this.name, actor],
-            onOverwrite: this.wm._endWindowEffect,
-            onOverwriteScope: this.wm,
-            onOverwriteParams: [cinnamonwm, this.name, actor]
+            onCompleteParams: [cinnamonwm, this.name, actor]
         });
     },
 
@@ -47,10 +44,7 @@ Effect.prototype = {
             transition: transition,
             onComplete: this.wm._endWindowEffect,
             onCompleteScope: this.wm,
-            onCompleteParams: [cinnamonwm, this.name, actor],
-            onOverwrite: this.wm._endWindowEffect,
-            onOverwriteScope: this.wm,
-            onOverwriteParams: [cinnamonwm, this.name, actor]
+            onCompleteParams: [cinnamonwm, this.name, actor]
         });
     },
 
@@ -62,10 +56,7 @@ Effect.prototype = {
             transition: transition,
             onComplete: this.wm._endWindowEffect,
             onCompleteScope: this.wm,
-            onCompleteParams: [cinnamonwm, this.name, actor],
-            onOverwrite: this.wm._endWindowEffect,
-            onOverwriteScope: this.wm,
-            onOverwriteParams: [cinnamonwm, this.name, actor]
+            onCompleteParams: [cinnamonwm, this.name, actor]
         });
     }
 };
@@ -88,6 +79,13 @@ Map.prototype = {
     fade: function(cinnamonwm, actor, time, transition){
         actor.opacity = 0;
         this._fadeWindow(cinnamonwm, actor, actor.orig_opacity, time, transition);
+    },
+
+    blend: function(cinnamonwm, actor, time, transition){
+        actor.opacity = 0;
+        actor.set_scale(1.5, 1.5);
+        this._fadeWindow(cinnamonwm, actor, actor.orig_opacity, time, transition);
+        this._scaleWindow(cinnamonwm, actor, 1, 1, time, transition);
     },
 
     move: function(cinnamonwm, actor, time, transition){
@@ -156,6 +154,11 @@ Close.prototype = {
     fade: function(cinnamonwm, actor, time, transition){
         Tweener.removeTweens(actor);
         this._fadeWindow(cinnamonwm, actor, 0, time, transition);
+    },
+
+    blend: function(cinnamonwm, actor, time, transition){
+        this._fadeWindow(cinnamonwm, actor, 0, time, transition);
+        this._scaleWindow(cinnamonwm, actor, 1.5, 1.5, time, transition);
     },
 
     move: function(cinnamonwm, actor, time, transition){

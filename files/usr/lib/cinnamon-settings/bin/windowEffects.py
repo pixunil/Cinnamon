@@ -10,6 +10,11 @@ class Previews(object):
     def fade(self, ctx, window, x, y, c):
         window(ctx, x, y, .5)
 
+    def blend(self, ctx, window, x, y, c):
+        steps = 3
+        for i in range(steps):
+            window(ctx, x, y, (steps - i) * 1. / steps, 1 + i / (steps - 1.) / 2)
+
     def traditional(self, ctx, window, x, y, c):
         gradient = cairo.LinearGradient(x, y * 2, x, y)
         gradient.add_color_stop_rgba(0, c.red, c.green, c.blue, 0)
@@ -56,6 +61,10 @@ class Map(object):
     def fade(self, ctx, window, x, y, value):
         window(ctx, x, y, value)
 
+    def blend(self, ctx, window, x, y, value):
+        scale = 1.5 - value / 2
+        window(ctx, x, y, value, scale)
+
     def move(self, ctx, window, x, y, value):
         window(ctx, x * value, y * value, scale=value)
 
@@ -74,6 +83,10 @@ class Close(object):
 
     def fade(self, ctx, window, x, y, value):
         window(ctx, x, y, 1 - value)
+
+    def blend(self, ctx, window, x, y, value):
+        scale = 1 + value / 2
+        window(ctx, x, y, 1 - value, scale)
 
     def move(self, ctx, window, x, y, value):
         value = 1 - value

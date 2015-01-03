@@ -78,6 +78,7 @@ class Module:
                 ["none",    _("None")],
                 ["scale",   _("Scale")],
                 ["fade",    _("Fade")],
+                ["blend",   _("Blend")],
                 ["move",    _("Move")],
                 ["flyUp",   _("Fly up")],
                 ["flyDown", _("Fly down")]
