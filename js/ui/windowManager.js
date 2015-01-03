@@ -7,7 +7,6 @@ const St = imports.gi.St;
 const Cinnamon = imports.gi.Cinnamon;
 const Mainloop = imports.mainloop;
 const Gio = imports.gi.Gio;
-const AppletManager = imports.ui.appletManager;
 const AppSwitcher = imports.ui.appSwitcher.appSwitcher;
 const CoverflowSwitcher = imports.ui.appSwitcher.coverflowSwitcher;
 const TimelineSwitcher = imports.ui.appSwitcher.timelineSwitcher;
@@ -201,7 +200,7 @@ WindowManager.prototype = {
             let transition = global.settings.get_string(key + "-transition");
 
             effect[type](cinnamonwm, actor, time, transition, args);
-        } else if(!overwriteKey) //when not unminimizing
+        } else if(!overwriteKey) //when not unminimizing, but the effect was not found, end it
             this._endWindowEffect(cinnamonwm, name, actor);
     },
 

@@ -12,7 +12,6 @@ try:
     import eyedropper
     import tweenEquations
     import math
-    from threading import Timer
     from gi.repository import Gio, Gtk, GObject, Gdk, GdkPixbuf
 except Exception, detail:
     print detail
@@ -1115,11 +1114,16 @@ class TweenChooser(Gtk.Button):
             self.menu.popup(None, None, self.popup_menu_below_button, self, event.button, event.time)
 
 class TweenMenuItem(Gtk.MenuItem):
+    width = 96
+    height = 48
+
+    state = -1
+    duration = 50
+
+    timer = None
+
     def __init__(self, name):
         super(TweenMenuItem, self).__init__()
-
-        self.width = 96
-        self.height = 48
 
         self.name = name
         self.function = eval("tweenEquations." + name)
@@ -1140,9 +1144,6 @@ class TweenMenuItem(Gtk.MenuItem):
         self.arr.set_size_request(5, self.height)
         self.arr.connect("draw", self.draw_arr)
 
-        self.arr_state = -1. #the "time" for the animation, -1: disabled
-        self.arr_timer = None
-
         self.connect("enter-notify-event", self.start_animation)
         self.connect("leave-notify-event", self.end_animation)
 
@@ -1155,7 +1156,7 @@ class TweenMenuItem(Gtk.MenuItem):
         height = self.height / 8.
 
         context = widget.get_style_context()
-        if self.arr_state == -1:
+        if self.state == -1:
             c = context.get_background_color(Gtk.StateFlags.SELECTED)
         else:
             c = context.get_color(Gtk.StateFlags.NORMAL)
@@ -1167,41 +1168,42 @@ class TweenMenuItem(Gtk.MenuItem):
         ctx.stroke()
 
     def draw_arr(self, widget, ctx):
-        if self.arr_state == -1:
+        if self.state < 0:
             return
-        width = self.width * 1.
         height = self.height / 8.
 
         context = widget.get_style_context()
         c = context.get_color(Gtk.StateFlags.NORMAL)
         ctx.set_source_rgb(c.red, c.green, c.blue)
 
-        ctx.arc(5, self.function(self.arr_state, height * 6, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
+        ctx.arc(5, self.function(self.state, height * 6, -height * 4, self.duration - 1), 5, math.pi / 2, math.pi * 1.5)
         ctx.fill()
 
     def start_animation(self, a, b):
-        self.arr_timer = Timer(.01, self.next_frame)
-        self.arr_timer.start()
+        self.state = 0.
+        self.graph.queue_draw()
+        self.arr.queue_draw()
+
+        self.timer = GObject.timeout_add(250, self.frame)
 
     def end_animation(self, a, b):
-        if self.arr_timer is not None:
-            self.arr_timer.cancel()
-            self.arr_state = -1.
-            self.arr.queue_draw()
-            self.arr_timer = None
-        self.graph.queue_draw()
+        if self.timer:
+            GObject.source_remove(self.timer)
+            self.timer = None
 
-    def next_frame(self):
-        self.arr_state += 1
-        if self.arr_state <= self.width:
-            self.arr.queue_draw()
-            self.arr_timer = Timer(.01, self.next_frame)
-            self.arr_timer.start()
-            if self.arr_state == 0:
-                self.graph.queue_draw()
-        elif self.arr_timer is not None:
-            self.arr_timer.cancel()
-            self.arr_state = self.width
+        self.state = -1
+        self.graph.queue_draw()
+        self.arr.queue_draw()
+
+    def frame(self):
+        self.timer = None
+        self.state += 1
+
+        if self.state >= self.duration:
+            return
+
+        self.arr.queue_draw()
+        self.timer = GObject.timeout_add(20, self.frame)
 
 
 SPECIAL_MODS = (["Super_L",    "<Super>"],

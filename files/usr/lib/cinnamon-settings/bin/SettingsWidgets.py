@@ -25,7 +25,6 @@ try:
     import subprocess
     import tweenEquations
     import windowEffects
-    from threading import Timer
 
 except Exception, detail:
     print detail
@@ -1094,14 +1093,11 @@ class GSettingsColorChooser(Gtk.ColorButton):
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
-class EffectChooserButton(BaseChooserButton):
-    def __init__(self, schema, key, dep_key, options):
-        super(EffectChooserButton, self).__init__()
+class BaseEffectChooserButton(BaseChooserButton):
+    def __init__(self, dep_key, options):
+        super(BaseEffectChooserButton, self).__init__()
 
-        self._schema = Gio.Settings.new(schema)
-        self._key = key
         self.dep_key = dep_key
-        self.value = self._schema.get_string(key)
 
         col = 0
         row = 0
@@ -1133,15 +1129,79 @@ class EffectChooserButton(BaseChooserButton):
         else:
             self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
 
-    def build_menuitem(self, option, col, row):
-        menuitem = EffectMenuItem(option[0], option[1], option[2])
-        menuitem.connect("activate", self.change_value)
-        self.menu.attach(menuitem, col, col + 1, row, row + 1)
-
     def change_value(self, widget):
         self.value = widget.value
         self.set_label(widget.name)
-        self._schema.set_string(self._key, self.value)
+        self.on_value_changed()
+
+    def on_value_changed(self):
+        pass
+
+
+class EffectSetChooserButton(BaseEffectChooserButton):
+    def __init__(self, schema, template, dep_key, options):
+        self.types = ["map", "close", "minimize", "maximize", "unmaximize", "tile"]
+        effects = []
+        transitions = []
+
+        self._schema = Gio.Settings.new(schema)
+        for i in self.types:
+            effects.append(self._schema.get_string(template % (i, "effect")))
+            transitions.append(self._schema.get_string(template % (i, "transition")))
+
+        self.value = [effects, transitions]
+        self.template = template
+
+        super(EffectSetChooserButton, self).__init__(dep_key, options)
+
+        if not self.get_label():
+            self.value = None
+            self.set_label(_("Custom"))
+
+    def build_menuitem(self, option, col, row):
+        menuitem = EffectSetMenuItem(option[0], option[1], option[2])
+
+        if option[0]:
+            #the order of the animation
+            types = [["map", 0], ["minimize", 2], ["unminimize", 0], ["maximize", 3], ["unmaximize", 4], ["close", 1]]
+
+            #if the minimize effect is traditional, use as transition the minimize one
+            if option[0][0][2] == "traditional":
+                types[2][1] = 2
+
+            #i will be (type, index for option[0][0/1])
+            for i in types:
+                transition = eval("tweenEquations." + option[0][1][i[1]])
+                menuitem.graph.append_animation(i[0], option[0][0][i[1]], transition)
+
+        menuitem.connect("activate", self.change_value)
+        self.menu.attach(menuitem, col, col + 1, row, row + 1)
+
+    def on_value_changed(self):
+        if not self.value:
+            return
+        j = 0
+        for i in self.types:
+            self._schema.set_string(self.template % (i, "effect"), self.value[0][j])
+            self._schema.set_string(self.template % (i, "transition"), self.value[1][j])
+            j += 1
+
+class EffectChooserButton(BaseEffectChooserButton):
+    def __init__(self, schema, key, dep_key, options, effect):
+        self._schema = Gio.Settings.new(schema)
+        self._key = key
+        self.options = options
+        self.effect = effect
+        self.value = self._schema.get_string(key)
+
+        self._schema.connect("changed::" + key, self.on_gsettings_value_changed)
+
+        super(EffectChooserButton, self).__init__(dep_key, options)
+
+    def build_menuitem(self, option, col, row):
+        menuitem = EffectMenuItem(option[0], option[1], self.effect)
+        menuitem.connect("activate", self.change_value)
+        self.menu.attach(menuitem, col, col + 1, row, row + 1)
 
     def bind_transition(self, transition_key):
         self._schema.connect("changed::" + transition_key, self.update_transition)
@@ -1150,11 +1210,22 @@ class EffectChooserButton(BaseChooserButton):
     def update_transition(self, settings, key):
         transition = settings.get_string(key)
         for item in self.menu.get_children():
-            item.graph.transition = eval("tweenEquations." + transition)
+            item.graph.set_transition(eval("tweenEquations." + transition))
 
-class EffectMenuItem(Gtk.MenuItem):
-    def __init__(self, value, name, effect):
-        super(EffectMenuItem, self).__init__()
+    def on_value_changed(self):
+        self._schema.set_string(self._key, self.value)
+
+    def on_gsettings_value_changed(self, a, b):
+        self.value = self._schema.get_string(self._key)
+        for i in self.options:
+            if i[0] == self.value or (not self.get_label() and not i[0]):
+                self.set_label(i[1])
+
+
+
+class BaseEffectMenuItem(Gtk.MenuItem):
+    def __init__(self, value, name):
+        super(BaseEffectMenuItem, self).__init__()
 
         self.value = value
         self.name = name
@@ -1162,7 +1233,6 @@ class EffectMenuItem(Gtk.MenuItem):
         self.vbox = Gtk.VBox()
         self.add(self.vbox)
 
-        self.graph = eval("windowEffects.%s()" % effect)
         self.connect("enter-notify-event", self.graph.start)
         self.connect("leave-notify-event", self.graph.stop)
         self.vbox.add(self.graph)
@@ -1170,6 +1240,16 @@ class EffectMenuItem(Gtk.MenuItem):
         label = Gtk.Label()
         self.vbox.add(label)
         label.set_text(name)
+
+class EffectSetMenuItem(BaseEffectMenuItem):
+    def __init__(self, value, name, preview):
+        self.graph = windowEffects.Canvas(preview)
+        super(EffectSetMenuItem, self).__init__(value, name)
+
+class EffectMenuItem(BaseEffectMenuItem):
+    def __init__(self, value, name, effect):
+        self.graph = windowEffects.Effect(effect, value)
+        super(EffectMenuItem, self).__init__(value, name)
 
 class TweenChooserButton(BaseChooserButton):
     def __init__(self, schema, key, dep_key):
@@ -1221,11 +1301,16 @@ class TweenChooserButton(BaseChooserButton):
         self._schema.set_string(self._key, self.value)
 
 class TweenMenuItem(Gtk.MenuItem):
+    width = 96
+    height = 48
+
+    state = -1
+    duration = 50
+
+    timer = None
+
     def __init__(self, name):
         super(TweenMenuItem, self).__init__()
-
-        self.width = 96
-        self.height = 48
 
         self.name = name
         self.function = eval("tweenEquations." + name)
@@ -1246,9 +1331,6 @@ class TweenMenuItem(Gtk.MenuItem):
         self.arr.set_size_request(5, self.height)
         self.arr.connect("draw", self.draw_arr)
 
-        self.arr_state = -1. #the "time" for the animation, -1: disabled
-        self.arr_timer = None
-
         self.connect("enter-notify-event", self.start_animation)
         self.connect("leave-notify-event", self.end_animation)
 
@@ -1261,7 +1343,7 @@ class TweenMenuItem(Gtk.MenuItem):
         height = self.height / 8.
 
         context = widget.get_style_context()
-        if self.arr_state == -1:
+        if self.state == -1:
             c = context.get_background_color(Gtk.StateFlags.SELECTED)
         else:
             c = context.get_color(Gtk.StateFlags.NORMAL)
@@ -1273,41 +1355,42 @@ class TweenMenuItem(Gtk.MenuItem):
         ctx.stroke()
 
     def draw_arr(self, widget, ctx):
-        if self.arr_state == -1:
+        if self.state < 0:
             return
-        width = self.width * 1.
         height = self.height / 8.
 
         context = widget.get_style_context()
         c = context.get_color(Gtk.StateFlags.NORMAL)
         ctx.set_source_rgb(c.red, c.green, c.blue)
 
-        ctx.arc(5, self.function(self.arr_state, height * 6, -height * 4, width), 5, math.pi / 2, math.pi * 1.5)
+        ctx.arc(5, self.function(self.state, height * 6, -height * 4, self.duration - 1), 5, math.pi / 2, math.pi * 1.5)
         ctx.fill()
 
     def start_animation(self, a, b):
-        self.arr_timer = Timer(.01, self.next_frame)
-        self.arr_timer.start()
+        self.state = 0.
+        self.graph.queue_draw()
+        self.arr.queue_draw()
+
+        self.timer = GObject.timeout_add(250, self.frame)
 
     def end_animation(self, a, b):
-        if self.arr_timer is not None:
-            self.arr_timer.cancel()
-            self.arr_state = -1.
-            self.arr.queue_draw()
-            self.arr_timer = None
-        self.graph.queue_draw()
+        if self.timer:
+            GObject.source_remove(self.timer)
+            self.timer = None
 
-    def next_frame(self):
-        self.arr_state += 1
-        if self.arr_state <= self.width:
-            self.arr.queue_draw()
-            self.arr_timer = Timer(.01, self.next_frame)
-            self.arr_timer.start()
-            if self.arr_state == 0:
-                self.graph.queue_draw()
-        elif self.arr_timer is not None:
-            self.arr_timer.cancel()
-            self.arr_state = self.width
+        self.state = -1
+        self.graph.queue_draw()
+        self.arr.queue_draw()
+
+    def frame(self):
+        self.timer = None
+        self.state += 1
+
+        if self.state >= self.duration:
+            return
+
+        self.arr.queue_draw()
+        self.timer = GObject.timeout_add(20, self.frame)
 
 
 # class GConfFontButton(Gtk.HBox):

@@ -137,9 +137,8 @@ MyApplet.prototype = {
         let timeoutId = Mainloop.timeout_add(3000, Lang.bind(this, function() {
             this.on_settings_changed();
         }));
-    },
 
-    animate_icon: function() {
+        //animate icon
         Tweener.addTween(this._applet_icon, {
             margin_left: 10,
             time: .5,
