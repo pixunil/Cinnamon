@@ -169,7 +169,7 @@ class Canvas(Gtk.DrawingArea):
         if self.state == -2:
             self.state = -1.
             self.queue_draw()
-            self.timer = GObject.timeout_add(500, self.frame)
+            self.timer = GObject.timeout_add(400, self.frame)
 
     def stop(self, a, b):
         if self.timer:
@@ -187,10 +187,11 @@ class Canvas(Gtk.DrawingArea):
 
         self.queue_draw()
 
+        #if a animation ends (e.g. mapping), make a little pause
         if self.state % self.duration == self.duration - 1:
-            self.timer = GObject.timeout_add(500, self.frame)
+            self.timer = GObject.timeout_add(200, self.frame)
         else:
-            self.timer = GObject.timeout_add(20, self.frame)
+            self.timer = GObject.timeout_add(15, self.frame)
 
     def draw(self, widget, ctx):
         x = self.width / 2.

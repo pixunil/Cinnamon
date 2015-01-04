@@ -1184,7 +1184,7 @@ class TweenMenuItem(Gtk.MenuItem):
         self.graph.queue_draw()
         self.arr.queue_draw()
 
-        self.timer = GObject.timeout_add(250, self.frame)
+        self.timer = GObject.timeout_add(400, self.frame)
 
     def end_animation(self, a, b):
         if self.timer:
@@ -1203,7 +1203,7 @@ class TweenMenuItem(Gtk.MenuItem):
             return
 
         self.arr.queue_draw()
-        self.timer = GObject.timeout_add(20, self.frame)
+        self.timer = GObject.timeout_add(15, self.frame)
 
 
 SPECIAL_MODS = (["Super_L",    "<Super>"],
