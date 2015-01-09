@@ -47,16 +47,6 @@ class Module:
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             bg.add(vbox)
 
-            section = Section(_("Enable Effects"))  
-            section.add(GSettingsCheckButton(_("Enable desktop effects"), "org.cinnamon", "desktop-effects", None))
-            section.add_indented(GSettingsCheckButton(_("Enable session startup animation"), "org.cinnamon", "startup-animation", "org.cinnamon/desktop-effects"))
-            section.add_indented(GSettingsCheckButton(_("Enable desktop effects on dialog boxes"), "org.cinnamon", "desktop-effects-on-dialogs", "org.cinnamon/desktop-effects"))
-            section.add(GSettingsCheckButton(_("Enable fade effect on Cinnamon scrollboxes (like the Menu application list)"), "org.cinnamon", "enable-vfade", None))
-            vbox.add(section)
-
-            vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))
-
-            section = Section(_("Customize Effects"))
             effect_sets = []
             for i in COMBINATIONS:
                 value = [
@@ -67,11 +57,28 @@ class Module:
 
             effect_sets.append([None, _("Custom"), "none"])
 
+            section = Section(_("Enable Effects"))
+            section.add(GSettingsCheckButton(_("Enable desktop effects"), "org.cinnamon", "desktop-effects", None))
+            section.add_indented(GSettingsCheckButton(_("Enable session startup animation"), "org.cinnamon", "startup-animation", "org.cinnamon/desktop-effects"))
+            section.add_indented(GSettingsCheckButton(_("Enable desktop effects on dialog boxes"), "org.cinnamon", "desktop-effects-on-dialogs", "org.cinnamon/desktop-effects"))
+
             self.chooser = EffectSetChooserButton("org.cinnamon", "desktop-effects-%s-%s", "org.cinnamon/desktop-effects", effect_sets)
             self.chooser.on_value_changed = self.update_section
-            section.add(self.chooser)
 
-            self.custom_effects = Gtk.VBox()
+            box = Gtk.HBox()
+            box.pack_start(Gtk.Label.new(_("Effect style")), False, False, 2)
+            box.pack_start(self.chooser, False, False, 2)
+            section.add_indented(box)
+
+            section.add(GSettingsCheckButton(_("Enable fade effect on Cinnamon scrollboxes (like the Menu application list)"), "org.cinnamon", "enable-vfade", None))
+            vbox.add(section)
+
+            #it seems that Gtk doesn't automatically hide the separator if we hide the section after it
+            self.separator = Gtk.Separator.new(Gtk.Orientation.HORIZONTAL)
+            vbox.add(self.separator)
+
+            self.custom_effects = Section(_("Customize Effects"))
+            #self.custom_effects.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))
 
             #MAPPING WINDOWS
             effects = [
@@ -102,15 +109,14 @@ class Module:
             #TILING WINDOWS
             self.make_effect_group(_("Tiling and snapping windows:"), "tile", effects)
 
-            section.add(self.custom_effects)
+            vbox.add(self.custom_effects)
 
-            vbox.add(section)
-
-            section.connect("show", self.update_section)
+            self.custom_effects.connect("show", self.update_section)
 
     def update_section(self, *args):
         EffectSetChooserButton.on_value_changed(self.chooser)
 
+        self.separator.set_visible(not self.chooser.value)
         self.custom_effects.set_visible(not self.chooser.value)
 
     def make_effect_group(self, group_label, key, effects):
@@ -136,4 +142,4 @@ class Module:
         self.size_groups[3].add_widget(w)
         box.add(w)
 
-        self.custom_effects.pack_start(box, False, False, 0)
+        self.custom_effects.add(box)
