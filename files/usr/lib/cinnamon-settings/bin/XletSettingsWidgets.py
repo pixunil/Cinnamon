@@ -18,8 +18,6 @@ except Exception, detail:
 home = os.path.expanduser("~")
 
 setting_dict = {
-    "header"          :   "Header", # Not a setting, just a boldface header text
-    "separator"       :   "Separator", # not a setting, a horizontal separator
     "entry"           :   "Entry",
     "textview"        :   "TextView",    
     "checkbox"        :   "CheckButton",
@@ -32,6 +30,14 @@ setting_dict = {
     "iconfilechooser" :   "IconFileChooser",
     "keybinding"      :   "Keybinding",
     "button"          :   "Button" # Not a setting, provides a button which triggers a callback in the applet/desklet
+}
+
+layout_dict = {
+    "header"          :   "Header",
+    "separator"       :   "Separator",
+
+    "hbox"            :   "HBox",
+    "vbox"            :   "VBox"
 }
 
 class Factory():
@@ -47,10 +53,19 @@ class Factory():
 
     def create(self, key, setting_type, uuid):
         try:
-            self.widgets[key] = eval(setting_dict[setting_type])(key, self.settings, uuid)
+            if setting_type in setting_dict:
+                self.widgets[key] = eval(setting_dict[setting_type])(key, self.settings, uuid)
+            elif setting_type in layout_dict:
+                self.widgets[key] = eval(layout_dict[setting_type])(self.settings, self.settings.get_data(key))
+
+            return self.widgets[key]
         except Exception, detail:
             print ("Invalid setting type '%s' supplied - please check your json file for %s" % (setting_type, uuid))
             print detail
+
+    def create_layout(self, setting_type, data=None):
+        if setting_type in layout_dict:
+            return eval(layout_dict[setting_type])(self.settings, data)
 
     def on_file_changed(self, file, other, event, data):
         if self.file_changed_timeout:
@@ -225,8 +240,8 @@ class Settings():
         self.save()
 
 
-class BaseWidget(object):
-    def __init__(self, key, settings_obj, uuid):
+class BaseLayoutWidget(object):
+    def __init__(self, settings_obj):
         self.settings_obj = settings_obj
         if self.settings_obj.tUser:
             self.tUser = self.settings_obj.tUser
@@ -236,6 +251,22 @@ class BaseWidget(object):
             self.t = self.settings_obj.t
         else:
             self.t = None
+
+    def translate(self, text):
+        if text == "":
+            return text
+        if self.tUser:
+            result = self.tUser(text)
+            if result != text:
+                return result
+        if self.t:
+            return self.t(text)
+        return text
+
+class BaseWidget(BaseLayoutWidget):
+    def __init__(self, key, settings_obj, uuid):
+        super(BaseWidget, self).__init__(settings_obj)
+
         self.key = key
         self.uuid = uuid
         self.handler = None
@@ -273,47 +304,20 @@ class BaseWidget(object):
 
     def get_desc(self):
         try:
-            desc = self.settings_obj.get_data(self.key)["description"]
-            if desc == "":
-                return desc
-            if self.tUser:
-                result = self.tUser(desc)
-                if result != desc:
-                    return result
-            if self.t:
-                return self.t(desc)
-            return desc
+            return self.translate(self.settings_obj.get_data(self.key)["description"])
         except:
             print ("Could not find description for key '%s' in xlet '%s'" % (self.key, self.uuid))
             return ""
 
     def get_tooltip(self):
         try:
-            tt = self.settings_obj.get_data(self.key)["tooltip"]
-            if tt == "":
-                return tt
-            if self.tUser:
-                result = self.tUser(tt)
-                if result != tt:
-                    return result
-            if self.t:
-                return self.t(tt)
-            return tt
+            return self.translate(self.settings_obj.get_data(self.key)["tooltip"])
         except:
             return ""
 
     def get_units(self):
         try:
-            units = self.settings_obj.get_data(self.key)["units"]
-            if units == "":
-                return units
-            if self.tUser:
-                result = self.tUser(units)
-                if result != units:
-                    return result
-            if self.t:
-                return self.t(units)
-            return units
+            return self.translate(self.settings_obj.get_data(self.key)["units"])
         except:
             print ("Could not find units for key '%s' in xlet '%s'" % (self.key, self.uuid))
             return ""
@@ -438,19 +442,38 @@ class IndentedHBox(Gtk.HBox):
     def add_fill(self, item):
         self.pack_start(item, True, True, 0)
 
-class Header(Gtk.HBox, BaseWidget):
-    def __init__(self, key, settings_obj, uuid):
-        BaseWidget.__init__(self, key, settings_obj, uuid)
+class Header(Gtk.HBox, BaseLayoutWidget):
+    def __init__(self, settings_obj, data):
+        BaseLayoutWidget.__init__(self, settings_obj)
         super(Header, self).__init__()
+        text = self.translate(data["description"])
         self.label = Gtk.Label()
         self.label.set_use_markup(True)
-        self.label.set_markup("<b>%s</b>" % self.get_desc())
+        self.label.set_markup("<b>%s</b>" % text)
         self.pack_start(self.label, False, False, 2)
 
-class Separator(Gtk.HSeparator, BaseWidget):
-    def __init__(self, key, settings_obj, uuid):
-        BaseWidget.__init__(self, key, settings_obj, uuid)
+class Separator(Gtk.HSeparator, BaseLayoutWidget):
+    def __init__(self, settings_obj, data):
+        BaseLayoutWidget.__init__(self, settings_obj)
         super(Separator, self).__init__()
+
+
+class HBox(Gtk.HBox, BaseLayoutWidget):
+    def __init__(self, settings_obj, data):
+        BaseLayoutWidget.__init__(self, settings_obj)
+        super(HBox, self).__init__()
+
+        if "indent" in data:
+            indent = int(data["indent"])
+            if indent:
+                label = Gtk.Label("\t" * indent)
+            self.pack_start(label, False, False, 0)
+
+class VBox(Gtk.VBox, BaseLayoutWidget):
+    def __init__(self, settings_obj, data):
+        BaseLayoutWidget.__init__(self, settings_obj)
+        super(VBox, self).__init__()
+
 
 class CheckButton(Gtk.CheckButton, BaseWidget):
     def __init__(self, key, settings_obj, uuid):

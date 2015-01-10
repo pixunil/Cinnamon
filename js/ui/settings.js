@@ -156,6 +156,20 @@ var NON_SETTING_TYPES = {
             "type"
         ]
     },
+
+    "hbox" : {
+        "required-fields": [
+            "type",
+            "children"
+        ]
+    },
+    "vbox" : {
+        "required-fields": [
+            "type",
+            "children"
+        ]
+    },
+
     "button" : {
         "required-fields": [
             "type",
@@ -285,6 +299,9 @@ _provider.prototype = {
         _json_validity_check: function (init_json) {
             let valid = false;
             for (let primary_key in init_json) {
+                if (primary_key === "__layout__")
+                    continue;
+
                 valid = this._check_for_min_props(init_json[primary_key])
                 if (!valid)
                     break;

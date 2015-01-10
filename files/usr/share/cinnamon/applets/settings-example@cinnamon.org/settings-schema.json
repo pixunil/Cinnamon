@@ -1,8 +1,11 @@
 {
- "head" : {
-    "type" : "header",
-    "description" : "First Section"
- },
+ "__layout__": [
+    "__header__ First Section",
+    "icon-name ... scale-demo",
+    "__separator__",
+    "__header__ Here's a new section",
+    "use-custom-label ... keybinding-test"
+ ],
  "icon-name": {
     "type": "iconfilechooser",
     "default" : "help",
@@ -45,13 +48,6 @@
     "step" : 0.05,
     "description" : "Here is a demonstration of bidirectional control:",
     "tooltip" : "If you adjust this scale, it updates in the applet.  If you adjust the scale in the applet, it updates here"
- },
- "div1" : {
-    "type" : "separator"
- },
- "head1" : {
-    "type" : "header",
-    "description" : "Here's a new section"
  },
  "use-custom-label" : {
     "type" : "checkbox",

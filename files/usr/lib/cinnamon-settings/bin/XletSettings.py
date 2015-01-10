@@ -119,6 +119,43 @@ class XletSetting:
                 raise Exception("Could not find any active setting files for %s %s" % (self.type, self.uuid))
         return False
 
+    def build_layout(self, instance_key, parent, children):
+        for child in children:
+            widget = None
+            if type(child) == unicode: #string
+                if child == "__md5__" or child == "__layout__":
+                    continue
+
+                #shorthand for multiple widget keys
+                if " ... " in child:
+                    (start, end) = child.split(" ... ")
+                    start = self.applet_settings[instance_key].keys().index(start)
+                    end = self.applet_settings[instance_key].keys().index(end) + 1
+
+                    if start < end:
+                        self.build_layout(instance_key, parent, self.applet_settings[instance_key].keys()[start:end])
+                elif child == "__separator__":
+                    widget = self.setting_factories[instance_key].create_layout("separator")
+                elif child[:10] == "__header__":
+                    widget = self.setting_factories[instance_key].create_layout("header", {"description": child[11:]})
+                elif child in self.applet_settings[instance_key]:
+                    setting_type = self.applet_settings[instance_key][child]["type"]
+                    if setting_type != "generic":
+                        widget = self.setting_factories[instance_key].create(child, setting_type, self.uuid)
+                        #if the widget is a container, add children to it
+                        if setting_type == "hbox" or setting_type == "vbox":
+                            self.build_layout(instance_key, widget, self.applet_settings[instance_key][child]["children"])
+            elif type(child) == list: #HBox
+                widget = self.setting_factories[instance_key].create_layout("hbox")
+                self.build_layout(instance_key, widget, child)
+            elif type(child) == collections.OrderedDict:
+                widget = self.setting_factories[instance_key].create_layout(child["type"], child)
+                self.build_layout(instance_key, widget, child["children"])
+
+            if widget:
+                parent.pack_start(widget, False, False, 2)
+
+
     def build_single(self):
         self.nb = None
         self.view = SectionBg()
@@ -127,21 +164,16 @@ class XletSetting:
         self.content_box.set_border_width(5)
 
         for instance_key in self.applet_settings.keys():
-            for setting_key in self.applet_settings[instance_key].keys():
-                if setting_key == "__md5__" or self.applet_settings[instance_key][setting_key]["type"] == "generic":
-                    continue
-                self.setting_factories[instance_key].create(setting_key,
-                                                            self.applet_settings[instance_key][setting_key]["type"],
-                                                            self.uuid)
+            #check for a __layout__ key, if it isn't there, use the normal order
+            if "__layout__" in self.applet_settings[instance_key]:
+                layout = self.applet_settings[instance_key]["__layout__"]
+            else:
+                layout = self.applet_settings[instance_key].keys()
+
+            self.build_layout(instance_key, self.content_box, layout)
             widgets = self.setting_factories[instance_key].widgets
             for widget_key in widgets.keys():
-                if widgets[widget_key].get_indented():
-                    indent = XletSettingsWidgets.IndentedHBox()
-                    indent.add_fill(widgets[widget_key])
-                    self.content_box.pack_start(indent, False, False, 2)
-                else:
-                    self.content_box.pack_start(widgets[widget_key], False, False, 2)
-                if len(widgets[widget_key].dependents) > 0:
+                if isinstance(widgets[widget_key], XletSettingsWidgets.BaseWidget) and len(widgets[widget_key].dependents) > 0:
                     widgets[widget_key].update_dependents()
             self.current_id = instance_key
         self.content.pack_start(self.view, True, True, 2)
