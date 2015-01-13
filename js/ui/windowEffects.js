@@ -1,6 +1,7 @@
 const Clutter = imports.gi.Clutter;
 
 const AppletManager = imports.ui.appletManager;
+const Main = imports.ui.main;
 const Tweener = imports.ui.tweener;
 
 function Effect(){
@@ -113,6 +114,9 @@ Map.prototype = {
 
         actor.set_position(xDest, ySrc);
 
+        let dist = Math.abs(ySrc - yDest);
+        time *= dist / Main.layoutManager.primaryMonitor.height * 2; // The transition time set is the time if the animation starts/ends at the middle of the screen. Scale it proportional to the actual distance so that the speed of all animations will be constant.
+
         this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition);
 
     },
@@ -124,6 +128,9 @@ Map.prototype = {
         let ySrc = -actor.get_allocation_box().get_height();
 
         actor.set_position(xDest, ySrc);
+
+        let dist = Math.abs(ySrc - yDest);
+        time *= dist / Main.layoutManager.primaryMonitor.height * 2; // The time time set is the time if the animation starts/ends at the middle of the screen. Scale it proportional to the actual distance so that the speed of all animations will be constant.
 
         this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition);
     }
@@ -172,12 +179,18 @@ Close.prototype = {
         let xDest = actor.get_transformed_position()[0];
         let yDest = -actor.get_allocation_box().get_height();
 
+        let dist = Math.abs(actor.get_transformed_position()[1] - yDest);
+        time *= dist / Main.layoutManager.primaryMonitor.height * 2; // The time time set is the time if the animation starts/ends at the middle of the screen. Scale it proportional to the actual distance so that the speed of all animations will be constant.
+
         this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition);
     },
 
     flyDown: function(cinnamonwm, actor, time, transition){
         let xDest = actor.get_transformed_position()[0];
         let yDest = global.stage.get_height();
+
+        let dist = Math.abs(actor.get_transformed_position()[1] - yDest);
+        time *= dist / Main.layoutManager.primaryMonitor.height * 2; // The transition time set is the time if the animation starts/ends at the middle of the screen. Scale it proportional to the actual distance so that the speed of all animations will be constant.
 
         this._moveWindow(cinnamonwm, actor, xDest, yDest, time, transition);
     }
