@@ -15,168 +15,125 @@ const BindingDirection = {
     BIDIRECTIONAL : 3 // Applet property updated automatically from settings.json, and vise-versa
 };
 
-var BOOLEAN_TYPES = {
-    "checkbox" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description"
-        ]
-    },
-    "generic" : {
-        "required-fields": [
-            "type",
-            "default"
-        ]
-    }
-};
+var SETTING_TYPES = {
+    //boolean types
+    "checkbox" : [
+        "type",
+        "default",
+        "description"
+    ],
+    "generic" : [
+        "type",
+        "default"
+    ],
 
-var STRING_TYPES = {
-    "entry" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description"
-        ]
-    },
-    "textview" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description"
-        ]
-    },
-    "colorchooser" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description"
-        ]
-    },
-    "radiogroup" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description",
-            "options"
-        ]
-    },
-    "filechooser" : {
-        "required-fields": [
-            "type",
-            "description",
-            "default"
-        ]
-    },
-    "iconfilechooser" : {
-        "required-fields": [
-            "type",
-            "description",
-            "default"
-        ]
-    },
-    "combobox" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description",
-            "options"
-        ]
-    },
-    "keybinding" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description"
-        ]
-    },
-    "generic" : {
-        "required-fields": [
-            "type",
-            "default"
-        ]
-    }
-};
+    //string types
+    "entry" : [
+        "type",
+        "default",
+        "description"
+    ],
+    "textview" : [
+        "type",
+        "default",
+        "description"
+    ],
+    "colorchooser" : [
+        "type",
+        "default",
+        "description"
+    ],
+    "radiogroup" : [
+        "type",
+        "default",
+        "description",
+        "options"
+    ],
+    "filechooser" : [
+        "type",
+        "description",
+        "default"
+    ],
+    "iconfilechooser" : [
+        "type",
+        "description",
+        "default"
+    ],
+    "combobox" : [
+        "type",
+        "default",
+        "description",
+        "options"
+    ],
+    "keybinding" : [
+        "type",
+        "default",
+        "description"
+    ],
+    "generic" : [
+        "type",
+        "default"
+    ],
 
-var NUMBER_TYPES = {
-    "spinbutton" : {
-        "required-fields": [
-            "type",
-            "default",
-            "min",
-            "max",
-            "units",
-            "step",
-            "description"
-        ]
-    },
-    "scale" : {
-        "required-fields": [
-            "type",
-            "default",
-            "min",
-            "max",
-            "step",
-            "description"
-        ]
-    },
-    "combobox" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description",
-            "options"
-        ]
-    },
-    "radiogroup" : {
-        "required-fields": [
-            "type",
-            "default",
-            "description",
-            "options"
-        ]
-    },
-    "generic" : {
-        "required-fields": [
-            "type",
-            "default"
-        ]
-    }
+    //number types
+    "spinbutton" : [
+        "type",
+        "default",
+        "min",
+        "max",
+        "units",
+        "step",
+        "description"
+    ],
+    "scale" : [
+        "type",
+        "default",
+        "min",
+        "max",
+        "step",
+        "description"
+    ],
+    "combobox" : [
+        "type",
+        "default",
+        "description",
+        "options"
+    ],
+    "radiogroup" : [
+        "type",
+        "default",
+        "description",
+        "options"
+    ],
+    "generic" : [
+        "type",
+        "default"
+    ]
 };
 
 var NON_SETTING_TYPES = {
-    "header" : {
-        "required-fields": [
-            "type",
-            "description"
-        ]
-    },
-    "separator" : {
-        "required-fields": [
-            "type"
-        ]
-    },
+    "header" : [
+        "type",
+        "description"
+    ],
+    "separator" : [
+        "type"
+    ],
 
-    "hbox" : {
-        "required-fields": [
-            "type",
-            "children"
-        ]
-    },
-    "vbox" : {
-        "required-fields": [
-            "type",
-            "children"
-        ]
-    },
+    "hbox" : [
+        "type",
+        "children"
+    ],
+    "vbox" : [
+        "type",
+        "children"
+    ],
 
-    "button" : {
-        "required-fields": [
-            "type",
-            "description",
-            "callback"
-        ]
-    }
+    "button" : [
+        "type",
+        "description",
+        "callback"
+    ]
 };
 
 function _provider(xlet, uuid, instanceId, type, string) {
@@ -297,58 +254,40 @@ _provider.prototype = {
         },
 
         _json_validity_check: function (init_json) {
-            let valid = false;
+            let valid = true;
             for (let primary_key in init_json) {
                 if (primary_key === "__layout__")
                     continue;
 
-                valid = this._check_for_min_props(init_json[primary_key])
-                if (!valid)
-                    break;
+                try {
+                    this._check_for_min_props(init_json[primary_key], primary_key);
+                } catch(e){
+                    valid = false;
+                    global.logError(e);
+                }
             }
             return valid;
         },
 
-        _check_for_min_props: function (node) {
-            if (node["type"] in BOOLEAN_TYPES) {
-                for (let req_field in BOOLEAN_TYPES[node["type"]]["required-fields"]) {
-                    if (BOOLEAN_TYPES[node["type"]]["required-fields"][req_field] in node) {
-                        continue;
-                    } else {
-                        return false;
+        _check_for_min_props: function (node, key) {
+            let notGiven = [];
+            if (node.type in SETTING_TYPES) {
+                for (let req_field in SETTING_TYPES[node.type]) {
+                    if (!(SETTING_TYPES[node.type][req_field] in node)) {
+                        notGiven.push(SETTING_TYPES[node.type][req_field]);
                     }
                 }
-                return true;
-            } else if (node["type"] in STRING_TYPES) {
-                for (let req_field in STRING_TYPES[node["type"]]["required-fields"]) {
-                    if (STRING_TYPES[node["type"]]["required-fields"][req_field] in node) {
-                        continue;
-                    } else {
-                        return false;
+            } else if (node.type in NON_SETTING_TYPES) {
+                for (let req_field in NON_SETTING_TYPES[node.type]) {
+                    if (!(NON_SETTING_TYPES[node.type][req_field] in node)) {
+                        notGiven.push(NON_SETTING_TYPES[node.type][req_field]);
                     }
                 }
-                return true;
-            } else if (node["type"] in NUMBER_TYPES) {
-                for (let req_field in NUMBER_TYPES[node["type"]]["required-fields"]) {
-                    if (NUMBER_TYPES[node["type"]]["required-fields"][req_field] in node) {
-                        continue;
-                    } else {
-                        return false;
-                    }
-                }
-                return true;
-            } else if (node["type"] in NON_SETTING_TYPES) {
-                for (let req_field in NON_SETTING_TYPES[node["type"]]["required-fields"]) {
-                    if (NON_SETTING_TYPES[node["type"]]["required-fields"][req_field] in node) {
-                        continue;
-                    } else {
-                        return false;
-                    }
-                }
-                return true;
-            } else {
-                return false;
-            }
+            } else
+                throw "Unknown setting widget type `" + node.type + "` for key `" + key + "`";
+
+            if(notGiven.length)
+                throw "Setting widget `" + key + "` has got no field" + (notGiven.length > 1? "s" : "") + " `" + notGiven.join("`, `") + "`";
         },
 
         _maybe_update_settings_file: function () {
@@ -509,7 +448,7 @@ _provider.prototype = {
             if (!applet_callback)
                 applet_callback = function() {};
             if (type) {
-                if (type in BOOLEAN_TYPES || type in STRING_TYPES || type in NUMBER_TYPES) {
+                if (type in SETTING_TYPES) {
                     this.metaBindings[key_name] = new _setting(sync_type, this.xlet, key_name, this.settings_obj, applet_var, Lang.bind (this.xlet, applet_callback), user_data);
                     return true;
                 } else {
