@@ -2,7 +2,13 @@
 
 from ExtensionCore import ExtensionSidePage
 from gi.repository import Gtk
-from SettingsWidgets import *
+from GSettingsWidgets import *
+
+DECORATION = {
+    _("No decoration"): 0,
+    _("Border only"): 1,
+    _("Border and header"): 2
+}
 
 class Module:
     def __init__(self, content_box):
@@ -43,8 +49,7 @@ class DeskletsViewSidePage (ExtensionSidePage):
         scrolled_window.add_with_viewport(config_vbox)
         config_vbox.set_border_width(5)
 
-        dec = [[0, _("No decoration")], [1, _("Border only")], [2, _("Border and header")]]
-        dec_combo = GSettingsIntComboBox(_("Decoration of desklets"), "org.cinnamon", "desklet-decorations", None, dec)
+        dec_combo = GSettingsIntComboBox(_("Decoration of desklets"), "org.cinnamon", "desklet-decorations", None, DECORATION)
 
         label = Gtk.Label()
         label.set_markup("<i><small>%s\n%s</small></i>" % (_("Note: Some desklets require the border/header to be always present"), _("Such requirements override the settings selected here")))

@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import Gio, Gtk, GObject, Gdk
+
+MODIFIERS = {
+    _("Disabled"): "",
+    _("Super (Windows)"): "Super",
+    _("Alt"): "Alt",
+    _("Shift"): "Shift",
+    _("Control"): "Control"
+}
 
 class Module:
     def __init__(self, content_box):
@@ -23,8 +31,7 @@ class Module:
             section = Section(_("Tiling and Snapping Settings"))  
             section.add(GSettingsCheckButton(_("Enable Window Tiling and Snapping"), "org.cinnamon.muffin", "edge-tiling", None))
             section.add_indented(GSettingsSpinButton(_("Tiling HUD visibility threshold"), "org.cinnamon.muffin", "tile-hud-threshold", "org.cinnamon.muffin/edge-tiling", 1, 300, 1, 1, _("Pixels")))
-            modifiers = [["", _("Disabled")],["Super", _("Super (Windows)")],["Alt", _("Alt")],["Shift", _("Shift")],["Control", _("Control")]]
-            section.add_indented(GSettingsComboBox(_("Modifier to use for toggling between tile and snap mode"), "org.cinnamon.muffin", "snap-modifier", "org.cinnamon.muffin/edge-tiling", modifiers))
+            section.add_indented(GSettingsComboBox(_("Modifier to use for toggling between tile and snap mode"), "org.cinnamon.muffin", "snap-modifier", "org.cinnamon.muffin/edge-tiling", MODIFIERS))
             section.add_indented(GSettingsCheckButton(_("Maximize, instead of tile, when dragging a window to the top edge"), "org.cinnamon.muffin", "tile-maximize", "org.cinnamon.muffin/edge-tiling"))
             section.add_indented(GSettingsCheckButton(_("Prevent the snap on-screen-display from showing"), "org.cinnamon", "hide-snap-osd", "org.cinnamon.muffin/edge-tiling"))
             section.add_indented(GSettingsCheckButton(_("Prevent the tile heads-up-display from showing"), "org.cinnamon", "hide-tile-hud", "org.cinnamon.muffin/edge-tiling"))

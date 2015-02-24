@@ -1,35 +1,35 @@
 #!/usr/bin/env python
 
 import os
-from SettingsWidgets import *
+from GSettingsWidgets import *
 import gi
 from gi.repository import CinnamonDesktop, Gdk
 
-POWER_BUTTON_OPTIONS = [
-    ("blank", _("Lock the screen")),
-    ("suspend", _("Suspend")),
-    ("shutdown", _("Shutdown immediately")),
-    ("hibernate", _("Hibernate")),
-    ("interactive", _("Ask what to do")),
-    ("nothing", _("Do nothing"))
-]
+POWER_BUTTON_OPTIONS = {
+    _("Lock the screen"): "blank",
+    _("Suspend"): "suspend",
+    _("Shutdown immediately"): "shutdown",
+    _("Hibernate"): "hibernate",
+    _("Ask what to do"): "interactive",
+    _("Do nothing"): "nothing"
+}
 
-IDLE_BRIGHTNESS_OPTIONS = [
-    (5, _("5%")),
-    (10, _("10%")),
-    (30, _("30%")),
-    (50, _("50%")),
-    (75, _("75%"))
-]
+IDLE_BRIGHTNESS_OPTIONS = {
+    _("5%"): 5,
+    _("10%"): 10,
+    _("30%"): 30,
+    _("50%"): 50,
+    _("75%"): 75
+}
 
-IDLE_DELAY_OPTIONS = [
-    (30, _("30 seconds")),
-    (60, _("60 seconds")),
-    (90, _("90 seconds")),
-    (120, _("2 minutes")),
-    (300, _("5 minutes")),
-    (600, _("10 minutes"))
-]
+IDLE_DELAY_OPTIONS = {
+    _("30 seconds"): 30,
+    _("60 seconds"): 60,
+    _("90 seconds"): 90,
+    _("2 minutes"): 120,
+    _("5 minutes"): 300,
+    _("10 minutes"): 600
+}
 
 class Module:
     def __init__(self, content_box):

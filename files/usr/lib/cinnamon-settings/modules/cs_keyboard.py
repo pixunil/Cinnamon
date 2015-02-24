@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import Gio, Gtk, GObject, Gdk
 import cgi
 import gettext

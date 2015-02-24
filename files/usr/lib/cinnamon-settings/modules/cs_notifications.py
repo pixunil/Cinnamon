@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import GObject, Notify
 
 content = """
@@ -18,12 +18,12 @@ sit amet lobortis. Donec sit amet nisi turpis. Morbi aliquet \
 aliquam ullamcorper. 
 """
 
-MEDIA_KEYS_OSD_SIZES = [
-    ("disabled", _("Disabled")),
-    ("small", _("Small")),
-    ("medium", _("Medium")),
-    ("large", _("Large"))
-]
+MEDIA_KEYS_OSD_SIZES = {
+    _("Disabled"): "disabled",
+    _("Small"): "small",
+    _("Medium"): "medium",
+    _("Large"): "large"
+}
 
 class Module:
     def __init__(self, content_box):

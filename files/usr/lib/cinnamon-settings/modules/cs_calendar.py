@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import Gtk
 
 class Module:

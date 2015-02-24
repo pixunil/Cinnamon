@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
+
+UI_SCALES = {
+    _("Auto"): 0,
+    _("Normal"): 1,
+    _("Double (Hi-DPI)"): 2
+}
 
 class Module:
     def __init__(self, content_box):
@@ -20,8 +26,7 @@ class Module:
             bg.add(vbox)
 
             section = Section(_("Desktop Scaling"))
-            ui_scales = [[0, _("Auto")], [1, _("Normal")], [2, _("Double (Hi-DPI)")]]        
-            combo = GSettingsUIntComboBox(_("User interface scaling:"), "org.cinnamon.desktop.interface", "scaling-factor", ui_scales)
+            combo = GSettingsUIntComboBox(_("User interface scaling:"), "org.cinnamon.desktop.interface", "scaling-factor", UI_SCALES)
             section.add(combo)
             vbox.add(section)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 
 LOCK_DELAY_OPTIONS = [
     (0, _("Immediately")),

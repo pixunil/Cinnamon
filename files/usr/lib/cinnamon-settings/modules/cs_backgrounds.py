@@ -2,7 +2,7 @@
 
 import sys
 sys.path.append('/usr/lib/cinnamon-settings/bin')
-from SettingsWidgets import *
+from GSettingsWidgets import *
 import os
 from gi.repository import Gio, Gtk, GObject, Gdk, Pango, GLib
 import imtools
@@ -13,21 +13,21 @@ import commands
 
 gettext.install("cinnamon", "/usr/share/locale")
 
-BACKGROUND_COLOR_SHADING_TYPES = [
-    ("solid", _("None")),
-    ("horizontal", _("Horizontal")),
-    ("vertical", _("Vertical"))
-]
+BACKGROUND_COLOR_SHADING_TYPES = {
+    _("None"): "solid",
+    _("Horizontal"): "horizontal",
+    _("Vertical"): "vertical"
+}
 
-BACKGROUND_PICTURE_OPTIONS = [
-    ("none", _("No picture")),
-    ("wallpaper", _("Mosaic")),
-    ("centered", _("Centered")),
-    ("scaled", _("Scaled")),
-    ("stretched", _("Stretched")),
-    ("zoom", _("Zoom")),
-    ("spanned", _("Spanned"))
-]
+BACKGROUND_PICTURE_OPTIONS = {
+    _("No picture"): "none",
+    _("Mosaic"): "wallpaper",
+    _("Centered"): "centered",
+    _("Scaled"): "scaled",
+    _("Stretched"): "stretched",
+    _("Zoom"): "zoom",
+    _("Spanned"): "spanned"
+}
 
 BACKGROUND_ICONS_SIZE = 100
 

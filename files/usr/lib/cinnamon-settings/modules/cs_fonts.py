@@ -1,8 +1,20 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import Gtk
 
+AA_OPTIONS = {
+    _("None"): "none",
+    _("Grayscale"): "grayscale",
+    _("Rgba"): "rgba"
+}
+
+HINTING_OPTIONS = {
+    _("None"): "none",
+    _("Slight"): "slight",
+    _("Medium"): "medium",
+    _("Full"): "full"
+}
 
 class Module:
     def __init__(self, content_box):
@@ -32,11 +44,9 @@ class Module:
             vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))
 
             section = Section(_("Font Settings"))
-            aa_options = [["none", _("None")], ["grayscale", _("Grayscale")], ["rgba", _("Rgba")]]
-            hinting_options = [["none", _("None")], ["slight", _("Slight")], ["medium", _("Medium")], ["full", _("Full")]]
             section.add(self.make_combo_group(GSettingsRangeSpin, _("Text scaling factor"), "org.cinnamon.desktop.interface", "text-scaling-factor", None))
-            section.add(self.make_combo_group(GSettingsComboBox, _("Antialiasing"), "org.cinnamon.settings-daemon.plugins.xsettings", "antialiasing", aa_options))
-            section.add(self.make_combo_group(GSettingsComboBox, _("Hinting"), "org.cinnamon.settings-daemon.plugins.xsettings", "hinting", hinting_options))
+            section.add(self.make_combo_group(GSettingsComboBox, _("Antialiasing"), "org.cinnamon.settings-daemon.plugins.xsettings", "antialiasing", AA_OPTIONS))
+            section.add(self.make_combo_group(GSettingsComboBox, _("Hinting"), "org.cinnamon.settings-daemon.plugins.xsettings", "hinting", HINTING_OPTIONS))
             vbox.add(section)
 
     def make_combo_group(self, widget, group_label, root, key, stuff):

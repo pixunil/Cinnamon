@@ -1,9 +1,50 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import Gio, Gtk, GObject, Gdk
 from gi.repository.Gtk import SizeGroup, SizeGroupMode
 
+ALTTAB_STYLES = {
+    _("Icons only"): "icons",
+    _("Thumbnails only"): "thumbnails",
+    _("Icons and thumbnails"): "icons+thumbnails",
+    _("Icons and window preview"): "icons+preview",
+    _("Window preview (no icons)"): "preview",
+    _("Coverflow (3D)"): "coverflow",
+    _("Timeline (3D)"): "timeline"
+}
+
+ACTION_OPTIONS = {
+    _("Toggle Shade"): "toggle-shade",
+    _("Toggle Maximize"): "toggle-maximize",
+    _("Toggle Maximize Horizontally"): "toggle-maximize-horizontally",
+    _("Toggle Maximize Vertically"): "toggle-maximize-vertically",
+    _("Toggle on all workspaces"): "toggle-stuck",
+    _("Toggle always on top"): "toggle-above",
+    _("Minimize"): "minimize",
+    _("Menu"): "menu",
+    _("Lower"): "lower",
+    _("None"): "none"
+}
+
+SCROLL_OPTIONS = {
+    _("Nothing"): "none",
+    _("Shade and unshade"): "shade",
+    _("Adjust opacity"): "opacity"
+}
+
+FOCUS_OPTIONS = {
+    _("Click"): "click",
+    _("Sloppy"): "sloppy",
+    _("Mouse"): "mouse"
+}
+
+SPECIAL_KEY_OPTIONS = {
+    _("Disabled"): "",
+    "<Alt>": "<Alt>",
+    "<Super>": "<Super>",
+    "<Control>": "<Control>"
+}
 
 class Module:
     def __init__(self, content_box):
@@ -22,17 +63,8 @@ class Module:
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             bg.add(vbox)
 
-            section = Section(_("Alt-Tab"))  
-            alttab_styles = [
-                ["icons", _("Icons only")],
-                ["thumbnails", _("Thumbnails only")],
-                ["icons+thumbnails", _("Icons and thumbnails")],
-                ["icons+preview", _("Icons and window preview")],
-                ["preview", _("Window preview (no icons)")],
-                ["coverflow", _("Coverflow (3D)")],
-                ["timeline", _("Timeline (3D)")]
-            ]
-            alttab_styles_combo = self._make_combo_group(_("Alt-Tab switcher style"), "org.cinnamon", "alttab-switcher-style", alttab_styles)
+            section = Section(_("Alt-Tab"))
+            alttab_styles_combo = self._make_combo_group(_("Alt-Tab switcher style"), "org.cinnamon", "alttab-switcher-style", ALTTAB_STYLES)
             section.add(alttab_styles_combo)
             section.add(GSettingsCheckButton(_("Display the alt-tab switcher on the primary monitor instead of the active one"), "org.cinnamon", "alttab-switcher-enforce-primary-monitor", None))
             section.add(
@@ -49,26 +81,20 @@ class Module:
             
             section.add(TitleBarButtonsOrderSelector())
 
-            action_options = [["toggle-shade", _("Toggle Shade")], ["toggle-maximize", _("Toggle Maximize")],
-                             ["toggle-maximize-horizontally", _("Toggle Maximize Horizontally")], ["toggle-maximize-vertically", _("Toggle Maximize Vertically")],
-                             ["toggle-stuck", _("Toggle on all workspaces")], ["toggle-above", _("Toggle always on top")],
-                             ["minimize", _("Minimize")], ["menu", _("Menu")], ["lower", _("Lower")], ["none", _("None")]]
 
             section.add(self._make_titlebar_action_group(_("Action on title bar double-click"),
                                                 "org.cinnamon.desktop.wm.preferences", "action-double-click-titlebar",
-                                                action_options))
+                                                ACTION_OPTIONS))
             section.add(self._make_titlebar_action_group(_("Action on title bar middle-click"),
                                                 "org.cinnamon.desktop.wm.preferences", "action-middle-click-titlebar",
-                                                action_options))
+                                                ACTION_OPTIONS))
             section.add(self._make_titlebar_action_group(_("Action on title bar right-click"),
                                                 "org.cinnamon.desktop.wm.preferences", "action-right-click-titlebar",
-                                                action_options))
-       
-            scroll_options = [["none", _("Nothing")],["shade", _("Shade and unshade")],["opacity", _("Adjust opacity")]]
+                                                ACTION_OPTIONS))
 
             combo = self._make_titlebar_action_group(_("Action on title bar with mouse scroll"),
                                                       "org.cinnamon.desktop.wm.preferences", "action-scroll-titlebar",
-                                                      scroll_options)
+                                                      SCROLL_OPTIONS)
             opacity_spinner = GSettingsSpinButton(_("Minimum opacity:"), "org.cinnamon.desktop.wm.preferences", "min-window-opacity", None, 0, 100, 1, 1, _("%"))
             opacity_spinner.show_all()
             opacity_spinner.set_no_show_all(True)
@@ -92,8 +118,7 @@ class Module:
             vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))
 
             section = Section(_("Window Focus"))
-            focus_options = [["click", _("Click")], ["sloppy", _("Sloppy")], ["mouse", _("Mouse")]]
-            section.add(self._make_combo_group(_("Window focus mode"), "org.cinnamon.desktop.wm.preferences", "focus-mode", focus_options))
+            section.add(self._make_combo_group(_("Window focus mode"), "org.cinnamon.desktop.wm.preferences", "focus-mode", FOCUS_OPTIONS))
             section.add(GSettingsCheckButton(_("Automatically raise focused windows"), "org.cinnamon.desktop.wm.preferences", "auto-raise", None))
             section.add(GSettingsCheckButton(_("Bring windows which require attention to the current workspace"), "org.cinnamon", "bring-windows-to-current-workspace", None))        
             section.add(GSettingsCheckButton(_("Prevent focus stealing"), "org.cinnamon", "prevent-focus-stealing", None))        
@@ -103,9 +128,7 @@ class Module:
             vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))
 
             section = Section(_("Moving and Resizing Windows"))
-
-            special_key_options = [["", _("Disabled")], ["<Alt>", "<Alt>"],["<Super>", "<Super>"],["<Control>", "<Control>"]]
-            combo = self._make_combo_group(_("Special key to move and resize windows"), "org.cinnamon.desktop.wm.preferences", "mouse-button-modifier", special_key_options)
+            combo = self._make_combo_group(_("Special key to move and resize windows"), "org.cinnamon.desktop.wm.preferences", "mouse-button-modifier", SPECIAL_KEY_OPTIONS)
             combo.set_tooltip_text(_("While the special key is pressed, windows can be dragged with the left mouse button and resized with the right mouse button."))
             section.add(combo)
             section.add(GSettingsSpinButton(_("Window drag/resize threshold"), "org.cinnamon.muffin", "resize-threshold", None, 1, 100, 1, 1, _("Pixels")))        
