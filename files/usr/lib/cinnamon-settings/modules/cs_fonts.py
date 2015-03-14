@@ -62,11 +62,11 @@ class Module:
         if (key == "text-scaling-factor"):
             w = widget("", root, key, None, adjustment_step = 0.1)
         elif (key == "antialiasing"):
-            w = widget("", root, key, None, stuff)
-            w.set_tooltip_text(_("Antialiasing makes on screen text smoother and easier to read"))
+            w = widget("", root, key, None, stuff,
+                tooltip = _("Antialiasing makes on screen text smoother and easier to read"))
         elif (key == "hinting"):
-            w = widget("", root, key, None, stuff)
-            w.set_tooltip_text(_("Hinting allows for producing clear, legible text on screen."))
+            w = widget("", root, key, None, stuff,
+                tooltip = _("Hinting allows for producing clear, legible text on screen."))
         else:
             w = widget("", root, key, None)
 

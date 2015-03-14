@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 
 class Module:
     def __init__(self, content_box):
@@ -24,9 +24,9 @@ class Module:
 
             section = Section(_("On-Screen Display (OSD)"))  
             section.add(GSettingsCheckButton(_("Enable workspace OSD"), "org.cinnamon", "workspace-osd-visible", None))
-            section.add_indented(GSettingsSpinButton(_("Workspace OSD duration"), "org.cinnamon", "workspace-osd-duration", "org.cinnamon/workspace-osd-visible", 0, 2000, 50, 400, _("milliseconds")))
-            section.add_indented(GSettingsSpinButton(_("Workspace OSD horizontal position"), "org.cinnamon", "workspace-osd-x", "org.cinnamon/workspace-osd-visible", 0, 100, 5, 50, _("percent of the monitor's width")))
-            section.add_indented(GSettingsSpinButton(_("Workspace OSD vertical position"), "org.cinnamon", "workspace-osd-y", "org.cinnamon/workspace-osd-visible", 0, 100, 5, 50, _("percent of the monitor's height")))
+            section.add_indented(GSettingsSpinButton(_("Workspace OSD duration"), "org.cinnamon", "workspace-osd-duration", "workspace-osd-visible", 0, 2000, 50, 400, _("milliseconds")))
+            section.add_indented(GSettingsSpinButton(_("Workspace OSD horizontal position"), "org.cinnamon", "workspace-osd-x", "workspace-osd-visible", 0, 100, 5, 50, _("percent of the monitor's width")))
+            section.add_indented(GSettingsSpinButton(_("Workspace OSD vertical position"), "org.cinnamon", "workspace-osd-y", "workspace-osd-visible", 0, 100, 5, 50, _("percent of the monitor's height")))
             vbox.add(section)
 
             vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))  

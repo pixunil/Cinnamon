@@ -43,23 +43,23 @@ COMBINATIONS = {
     "default":    ("default",  "normal",   "default")
 }
 
-OPTIONS = (
-    ("cinnamon",   _("Cinnamon")),
-    ("scale",      _("Scale")),
-    ("fancyScale", _("Fancy Scale")),
-    ("fade",       _("Fade")),
-    ("blend",      _("Blend")),
-    ("move",       _("Move")),
-    ("flyUp",      _("Fly up, down")),
-    ("flyDown",    _("Fly down, up")),
+OPTIONS = {
+    _("Cinnamon"):     "cinnamon",
+    _("Scale"):        "scale",
+    _("Fancy Scale"):  "fancyScale",
+    _("Fade"):         "fade",
+    _("Blend"):        "blend",
+    _("Move"):         "move",
+    _("Fly up, down"): "flyUp",
+    _("Fly down, up"): "flyDown",
    #for previous versions
-    ("default",    _("Default"))
-)
+    _("Default"):      "default"
+}
 
 class Module:
     types = ("map", "close", "minimize", "maximize", "unmaximize", "tile")
     root = "org.cinnamon"
-    path = "org.cinnamon/desktop-effects"
+    path = "desktop-effects"
     template = "desktop-effects-%s-%s"
 
     def __init__(self, content_box):
@@ -85,8 +85,8 @@ class Module:
             section = Section(_("Enable Effects"))
             section.add(GSettingsCheckButton(_("Enable fade effect on Cinnamon scrollboxes (like the Menu application list)"), "org.cinnamon", "enable-vfade", None))
             section.add(GSettingsCheckButton(_("Enable desktop effects"), "org.cinnamon", "desktop-effects", None))
-            section.add_indented(GSettingsCheckButton(_("Enable session startup animation"), "org.cinnamon", "startup-animation", "org.cinnamon/desktop-effects"))
-            section.add_indented(GSettingsCheckButton(_("Enable desktop effects on dialog boxes"), "org.cinnamon", "desktop-effects-on-dialogs", "org.cinnamon/desktop-effects"))
+            section.add_indented(GSettingsCheckButton(_("Enable session startup animation"), "org.cinnamon", "startup-animation", "desktop-effects"))
+            section.add_indented(GSettingsCheckButton(_("Enable desktop effects on dialog boxes"), "org.cinnamon", "desktop-effects-on-dialogs", "desktop-effects"))
             vbox.add(section)
 
             self.schema.connect("changed::desktop-effects", self.on_desktop_effects_enabled_changed)
@@ -198,15 +198,14 @@ class Module:
         self.custom_checkbutton.set_sensitive(active)
         self.update_effects(self.custom_checkbutton)
 
-class GSettingsEffectChooserButton(BaseChooserButton):
+class GSettingsEffectChooserButton(BaseChooserButton, BaseGSettingsWidget):
     def __init__(self, schema, key, dep_key, options, effect):
+        BaseGSettingsWidget.__init__(self, schema, key)
         super(GSettingsEffectChooserButton, self).__init__()
+        self.setup_dependency(dep_key)
 
-        self._schema = Gio.Settings.new(schema)
-        self._key = key
         self.options = options
         self.effect = effect
-        self.value = self._schema.get_string(key)
 
         col = 0
         row = 0
@@ -221,28 +220,14 @@ class GSettingsEffectChooserButton(BaseChooserButton):
 
         self.set_size_request(72, -1)
 
-        self.dep_key = dep_key
-        self.dependency_invert = False
-        if self.dep_key is not None:
-            if self.dep_key[0] == '!':
-                self.dependency_invert = True
-                self.dep_key = self.dep_key[1:]
-            split = self.dep_key.split('/')
-            self.dep_settings = Gio.Settings.new(split[0])
-            self.dep_key = split[1]
-            self.dep_settings.connect("changed::" + self.dep_key, self.on_dependency_setting_changed)
-            self.on_dependency_setting_changed(self, None)
-
-        self._schema.connect("changed::" + key, self.on_gsettings_value_changed)
-
     def build_menuitem(self, option, col, row):
         menuitem = EffectMenuItem(option[0], option[1], self.effect)
         menuitem.connect("activate", self.change_value)
         self.menu.attach(menuitem, col, col + 1, row, row + 1)
 
     def bind_transition(self, transition_key):
-        self._schema.connect("changed::" + transition_key, self.update_transition)
-        self.update_transition(self._schema, transition_key)
+        self.settings.connect("changed::" + transition_key, self.update_transition)
+        self.update_transition(self.settings, transition_key)
 
     def update_transition(self, settings, key):
         transition = settings.get_string(key)
@@ -250,29 +235,20 @@ class GSettingsEffectChooserButton(BaseChooserButton):
             item.graph.transition = getattr(tweenEquations, transition, tweenEquations.easeNone)
 
     def bind_time(self, key):
-        self._schema.connect("changed::" + key, self.update_time)
-        self.update_time(self._schema, key)
+        self.settings.connect("changed::" + key, self.update_time)
+        self.update_time(self.settings, key)
 
     def update_time(self, settings, key):
         time = settings.get_int(key) / 10
         for item in self.menu.get_children():
             item.graph.duration = time
 
-    def on_dependency_setting_changed(self, settings, dep_key):
-        if not self.dependency_invert:
-            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
-        else:
-            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
-
     def change_value(self, widget):
-        self.value = widget.value
-        self.set_label(widget.name)
-        self._schema.set_string(self._key, self.value)
+        self.apply_value(widget.value)
 
-    def on_gsettings_value_changed(self, a, b):
-        self.value = self._schema.get_string(self._key)
+    def update_value(self, value):
         for i in self.options:
-            if i[0] == self.value:
+            if i[0] == value:
                 self.set_label(i[1])
 
 class EffectMenuItem(Gtk.MenuItem):
@@ -293,14 +269,12 @@ class EffectMenuItem(Gtk.MenuItem):
         self.vbox.add(label)
         label.set_text(name)
 
-class GSettingsTweenChooserButton(BaseChooserButton):
+class GSettingsTweenChooserButton(BaseChooserButton, BaseGSettingsWidget):
     def __init__(self, schema, key, dep_key):
+        BaseGSettingsWidget.__init__(self, schema, key)
         super(GSettingsTweenChooserButton, self).__init__()
+        self.setup_dependency(dep_key)
 
-        self._schema = Gio.Settings.new(schema)
-        self._key = key
-        self.dep_key = dep_key
-        self.value = self._schema.get_string(key)
         self.options = []
 
         self.set_label(self.value)
@@ -317,33 +291,14 @@ class GSettingsTweenChooserButton(BaseChooserButton):
                 col += 1
             row += 1
 
-        self._schema.connect("changed::" + key, self.on_gsettings_value_changed)
-
-        self.dependency_invert = False
-        if self.dep_key is not None:
-            if self.dep_key[0] == '!':
-                self.dependency_invert = True
-                self.dep_key = self.dep_key[1:]
-            split = self.dep_key.split('/')
-            self.dep_settings = Gio.Settings.new(split[0])
-            self.dep_key = split[1]
-            self.dep_settings.connect("changed::" + self.dep_key, self.on_dependency_setting_changed)
-            self.on_dependency_setting_changed(self, None)
-
-    def on_dependency_setting_changed(self, settings, dep_key):
-        if not self.dependency_invert:
-            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
-        else:
-            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
-
     def build_menuitem(self, name, col, row):
         menuitem = TweenMenuItem("ease" + name)
         menuitem.connect("activate", self.change_value)
         self.menu.attach(menuitem, col, col + 1, row, row + 1)
 
     def bind_time(self, key):
-        self._schema.connect("changed::" + key, self.update_time)
-        self.update_time(self._schema, key)
+        self.settings.connect("changed::" + key, self.update_time)
+        self.update_time(self.settings, key)
 
     def update_time(self, settings, key):
         time = settings.get_int(key) / 10
@@ -351,14 +306,11 @@ class GSettingsTweenChooserButton(BaseChooserButton):
             item.duration = time
 
     def change_value(self, widget):
-        self.value = widget.name
-        self.set_label(self.value)
-        self._schema.set_string(self._key, self.value)
+        self.apply_value(widget.name)
 
-    def on_gsettings_value_changed(self, a, b):
-        self.value = self._schema.get_string(self._key)
+    def update_value(self, value):
         for i in self.options:
-            if i == self.value:
+            if i == value:
                 self.set_label(i)
 
 class TweenMenuItem(Gtk.MenuItem):

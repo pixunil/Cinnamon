@@ -41,7 +41,7 @@ class Module:
             
             section = Section(_("Edge Flip Settings"))  
             section.add(GSettingsCheckButton(_("Enable Edge Flip"), "org.cinnamon", "enable-edge-flip", None))
-            section.add_indented(GSettingsSpinButton(_("Edge Flip delay"), "org.cinnamon", "edge-flip-delay", "org.cinnamon/enable-edge-flip", 1, 3000, 1, 1, _("ms")))
+            section.add_indented(GSettingsSpinButton(_("Edge Flip delay"), "org.cinnamon", "edge-flip-delay", "enable-edge-flip", 1, 3000, 1, 1, _("ms")))
             vbox.add(section)
 
             vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))

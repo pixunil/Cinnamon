@@ -97,20 +97,20 @@ class Module:
                     box = Gtk.HBox()
                     box.set_spacing(6)
 
-                    widget = GSettingsCheckButton(_("On battery, dim screen to"), "org.cinnamon.settings-daemon.plugins.power", "idle-dim-battery", None)
-                    widget.set_tooltip_text(_("Save battery power by reducing the brightness of the screen when inactive"))
+                    widget = GSettingsCheckButton(_("On battery, dim screen to"), "org.cinnamon.settings-daemon.plugins.power", "idle-dim-battery", None,
+                        tooltip = _("Save battery power by reducing the brightness of the screen when inactive"))
                     box.pack_start(widget, False, False, 0)
 
-                    widget = GSettingsIntComboBox("", "org.cinnamon.settings-daemon.plugins.power", "idle-brightness", "org.cinnamon.settings-daemon.plugins.power/idle-dim-battery", IDLE_BRIGHTNESS_OPTIONS)
-                    widget.set_tooltip_text(_("Save battery power by reducing the brightness of the screen when inactive"))
+                    widget = GSettingsIntComboBox("", "org.cinnamon.settings-daemon.plugins.power", "idle-brightness", "idle-dim-battery", IDLE_BRIGHTNESS_OPTIONS,
+                        tooltip = _("Save battery power by reducing the brightness of the screen when inactive"))
                     box.pack_start(widget, False, False, 0)
 
                     widget = Gtk.Label.new(_("after"))
                     widget.set_tooltip_text(_("Save battery power by reducing the brightness of the screen when inactive"))
                     box.pack_start(widget, False, False, 0)
 
-                    widget = GSettingsIntComboBox("", "org.cinnamon.settings-daemon.plugins.power", "idle-dim-time", "org.cinnamon.settings-daemon.plugins.power/idle-dim-battery", IDLE_DELAY_OPTIONS)
-                    widget.set_tooltip_text(_("Save battery power by reducing the brightness of the screen when inactive"))
+                    widget = GSettingsIntComboBox("", "org.cinnamon.settings-daemon.plugins.power", "idle-dim-time", "idle-dim-battery", IDLE_DELAY_OPTIONS,
+                        tooltip = _("Save battery power by reducing the brightness of the screen when inactive"))
                     box.pack_start(widget, False, False, 0)
 
                     vbox.pack_start(box, False, False, 0)

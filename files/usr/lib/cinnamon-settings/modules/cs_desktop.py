@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SettingsWidgets import *
+from GSettingsWidgets import *
 from gi.repository import Gio
 
 class Module:
@@ -52,6 +52,6 @@ class Module:
                    
             for key, label in options:
                 if key in nemo_desktop_keys:
-                    section.add_indented(GSettingsCheckButton(label, schema, key, "%s/%s" % (schema, show_desktop_icons_key)))
-           
+                    section.add_indented(GSettingsCheckButton(label, schema, key, show_desktop_icons_key))
+
             vbox.add(section)

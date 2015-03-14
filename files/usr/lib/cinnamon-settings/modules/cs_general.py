@@ -26,15 +26,15 @@ class Module:
             bg.add(vbox)
 
             section = Section(_("Desktop Scaling"))
-            combo = GSettingsUIntComboBox(_("User interface scaling:"), "org.cinnamon.desktop.interface", "scaling-factor", UI_SCALES)
+            combo = GSettingsUIntComboBox(_("User interface scaling:"), "org.cinnamon.desktop.interface", "scaling-factor", None, UI_SCALES)
             section.add(combo)
             vbox.add(section)
 
             vbox.add(Gtk.Separator.new(Gtk.Orientation.HORIZONTAL))       
 
             section = Section(_("Miscellaneous Options"))
-            button = GSettingsCheckButton(_("Disable compositing for full-screen windows"), "org.cinnamon.muffin", "unredirect-fullscreen-windows", None)
-            button.set_tooltip_text(_("Select this option to let full-screen applications skip the compositing manager and run at maximum speed. Unselect it if you're experiencing screen-tearing in full screen mode."))
+            button = GSettingsCheckButton(_("Disable compositing for full-screen windows"), "org.cinnamon.muffin", "unredirect-fullscreen-windows", None,
+                tooltip = _("Select this option to let full-screen applications skip the compositing manager and run at maximum speed. Unselect it if you're experiencing screen-tearing in full screen mode."))
             section.add(button)
             section.add(GSettingsCheckButton(_("Enable timer when logging out or shutting down"), "org.cinnamon.SessionManager", "quit-delay-toggle", None))
             spin = GSettingsSpinButton(_("Timer delay:"), "org.cinnamon.SessionManager", "quit-time-delay", "org.cinnamon.SessionManager/quit-delay-toggle", 0, 36000, 1, 60, _("seconds"))

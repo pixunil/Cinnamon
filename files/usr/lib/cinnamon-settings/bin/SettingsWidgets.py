@@ -449,12 +449,31 @@ class IndentedHBox(Gtk.HBox):
     def add_expand(self, item):
         self.pack_start(item, True, True, 0)
 
-class CheckButton(Gtk.CheckButton):
-    def __init__(self, value = None, description = ""):
-        super(CheckButton, self).__init__(label = description)
+class BaseWidget(object):
+    _value_changed_timer = None
+
+    def __init__(self, value = None, tooltip = "", **kwargs):
+        if tooltip:
+            self.set_tooltip_text(tooltip)
 
         if value is not None:
-            self.set_active(value)
+            self.update_value(value)
+
+    #widgets call this method with the value in callbacks of events
+    #this function just waits 100ms before applying the new value
+    def queue_value_changed(self, value):
+        if self._value_changed_timer:
+            GObject.source_remove(self._value_changed_timer)
+        self._value_changed_timer = GObject.timeout_add(100, self.on_timer_complete, value)
+
+    def on_timer_complete(self, value):
+        self._value_changed_timer = None
+        self.apply_value(value)
+
+class CheckButton(Gtk.CheckButton, BaseWidget):
+    def __init__(self, description = "", **kwargs):
+        super(CheckButton, self).__init__(label = description)
+        BaseWidget.__init__(self, **kwargs)
 
         self.connect("toggled", self.on_value_changed)
 
@@ -464,12 +483,10 @@ class CheckButton(Gtk.CheckButton):
     def update_value(self, value):
        self.set_active(value)
 
-    def update_dependency(self, dependency):
-        self.set_sensitive(dependency)
-
-class HBoxWidget(Gtk.HBox):
-    def __init__(self, description, units = ""):
+class HBoxWidget(Gtk.HBox, BaseWidget):
+    def __init__(self, description, **kwargs):
         super(HBoxWidget, self).__init__()
+        BaseWidget.__init__(self, **kwargs)
 
         if description:
             label = Gtk.Label(description)
@@ -477,22 +494,21 @@ class HBoxWidget(Gtk.HBox):
 
         self.pack_start(self.content_widget, False, False, 2)
 
+class SpinButton(HBoxWidget):
+    def __init__(self, min, max, step, units, page = None, **kwargs):
+        self.content_widget = Gtk.SpinButton()
+        self.content_widget.set_range(min, max)
+        if page is None:
+            page = step
+        self.content_widget.set_increments(step, page)
+
+        super(SpinButton, self).__init__(**kwargs)
+
         if units:
             label = Gtk.Label(units)
             self.pack_start(label, False, False, 2)
 
-    def update_dependency(self, dependency):
-        self.set_sensitive(dependency)
-
-class SpinButton(HBoxWidget):
-    def __init__(self, value, description, min, max, step, page, units):
-        self.content_widget = Gtk.SpinButton()
-        super(SpinButton, self).__init__(description, units)
-
-        self.min = min
-        self.max = max
-
-        #range = self.settings.get_range(self.key)
+        #is this piece of code needed?
         #if range[0] == "range":
         #    rangeDefault = (1 << 32) - 1
         #    rangeMin = rangeDefault
@@ -502,9 +518,6 @@ class SpinButton(HBoxWidget):
         #    rangeMax = range[1] if range[1] < rangeDefault else rangeDefault
         #    self.min = min if min > rangeMin else rangeMin
         #    self.max = max if max < rangeMax else rangeMax
-        self.content_widget.set_range(self.min, self.max)
-        self.content_widget.set_increments(step, page)
-        self.content_widget.set_value(value)
 
         self.content_widget.connect("value-changed", self.on_value_changed)
         self._value_changed_timer = None
@@ -523,28 +536,26 @@ class SpinButton(HBoxWidget):
         self.content_widget.set_value(value)
 
 class Entry(HBoxWidget):
-    def __init__(self, value, description):
+    def __init__(self, **kwargs):
         self.content_widget = Gtk.Entry()
-        super(Entry, self).__init__(description)
+        super(Entry, self).__init__(**kwargs)
 
-        self.content_widget.set_text(value)
-        self.content_widget.connect("focus-out-event", self.on_value_changed)
+        self.content_widget.connect("changed", self.on_value_changed)
 
-    def on_value_changed(self, event, widget):
-        self.apply_value(self.content_widget.get_text())
+    def on_value_changed(self, widget):
+        self.queue_value_changed(self.content_widget.get_text())
 
     def update_value(self, value):
         self.content_widget.set_text(value)
 
 
 class FileChooser(HBoxWidget):
-    def __init__(self, value, description, show_none_cb = False):
+    def __init__(self, show_none_cb = False, **kwargs):
         self.content_widget = Gtk.FileChooserButton()
-        super(FileChooser, self).__init__(description)
+        super(FileChooser, self).__init__(**kwargs)
 
         self.show_none_cb = show_none_cb
 
-        self.content_widget.set_filename(value)
         if self.show_none_cb:
             self.show_none_cb_widget = Gtk.CheckButton(_("None"))
             self.show_none_cb_widget.set_active(value == "")
@@ -576,11 +587,10 @@ class FileChooser(HBoxWidget):
         self.content_widget.set_filename(value)
 
 class FontButton(HBoxWidget):
-    def __init__(self, value, description):
+    def __init__(self, **kwargs):
         self.content_widget = Gtk.FontButton()
-        super(FontButton, self).__init__(description)
+        super(FontButton, self).__init__(**kwargs)
 
-        self.content_widget.set_font_name(value)
         self.content_widget.connect('font-set', self.on_value_changed)
 
     def on_value_changed(self, widget):
@@ -589,198 +599,8 @@ class FontButton(HBoxWidget):
     def update_value(self, value):
         self.content_widget.set_font_name(value)
 
-class GSettingsRange(Gtk.HBox):
-    def __init__(self, label, low_label, hi_label, low_limit, hi_limit, inverted, valtype, exponential, schema, key, dep_key, **options):
-        super(GSettingsRange, self).__init__()
-        self.key = key
-        self.dep_key = dep_key
-        self.settings = Gio.Settings.new(schema)
-        self.valtype = valtype
-
-        if self.valtype == "int":
-            self.value = self.settings.get_int(self.key) * 1.0
-        elif self.valtype == "uint":
-            self.value = self.settings.get_uint(self.key) * 1.0
-        elif self.valtype == "double":
-            self.value = self.settings.get_double(self.key) * 1.0
-        self.label = Gtk.Label.new(label)
-        self.label.set_alignment(1.0, 0.5)
-        self.label.set_size_request(150, -1)
-        self.low_label = Gtk.Label()
-        self.low_label.set_alignment(0.5, 0.5)
-        self.low_label.set_size_request(60, -1)
-        self.hi_label = Gtk.Label()
-        self.hi_label.set_alignment(0.5, 0.5)
-        self.hi_label.set_size_request(60, -1)
-        self.low_label.set_markup("<i><small>%s</small></i>" % low_label)
-        self.hi_label.set_markup("<i><small>%s</small></i>" % hi_label)
-        self.inverted = inverted
-        self.exponential = exponential
-        self._range = (hi_limit - low_limit) * 1.0
-        self._step = options.get('adjustment_step', 1)
-        self._min = low_limit * 1.0
-        self._max = hi_limit * 1.0
-        self.content_widget = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, (self._step / self._range))
-        self.content_widget.set_size_request(300, 0)
-        self.content_widget.set_value(self.to_corrected(self.value))
-        self.content_widget.set_draw_value(False);
-
-        self.grid = Gtk.Grid()
-        if (label != ""):
-            self.grid.attach(self.label, 0, 0, 1, 1)
-        if (low_label != ""):
-            self.grid.attach(self.low_label, 1, 0, 1, 1)
-        self.grid.attach(self.content_widget, 2, 0, 1, 1)
-        if (hi_label != ""):
-            self.grid.attach(self.hi_label, 3, 0, 1, 1)
-        self.pack_start(self.grid, True, True, 2)
-        self._dragging = False
-        self.content_widget.connect('value-changed', self.on_my_value_changed)
-        self.content_widget.connect('button-press-event', self.on_mouse_down)
-        self.content_widget.connect('button-release-event', self.on_mouse_up)
-        self.content_widget.connect("scroll-event", self.on_mouse_scroll_event)
-        self.content_widget.show_all()
-        self.dependency_invert = False
-        if self.dep_key is not None:
-            if self.dep_key[0] == '!':
-                self.dependency_invert = True
-                self.dep_key = self.dep_key[1:]
-            split = self.dep_key.split('/')
-            self.dep_settings = Gio.Settings.new(split[0])
-            self.dep_key = split[1]
-            self.dep_settings.connect("changed::"+self.dep_key, self.on_dependency_setting_changed)
-            self.on_dependency_setting_changed(self, None)
-
-# halt writing gsettings during dragging
-# it can take a long time to process all
-# those updates, and the system can crash
-
-    def on_mouse_down(self, widget, event):
-        self._dragging = True
-
-    def on_mouse_up(self, widget, event):
-        self._dragging = False
-        self.on_my_value_changed(widget)
-
-    def on_mouse_scroll_event(self, widget, event):
-        found, delta_x, delta_y = event.get_scroll_deltas()
-        if found:
-            add = delta_y < 0
-            uncorrected = self.from_corrected(widget.get_value())
-            if add:
-                corrected = self.to_corrected(uncorrected + self._step)
-            else:
-                corrected = self.to_corrected(uncorrected - self._step)
-            widget.set_value(corrected)
-        return True
-
-    def on_my_value_changed(self, widget):
-        if self._dragging:
-            return
-        corrected = self.from_corrected(widget.get_value())
-        if self.valtype == "int":
-            self.settings.set_int(self.key, corrected)
-        elif self.valtype == "uint":
-            self.settings.set_uint(self.key, corrected)
-        elif self.valtype == "double":
-            self.settings.set_double(self.key, corrected)
-
-    def on_dependency_setting_changed(self, settings, dep_key):
-        if not self.dependency_invert:
-            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
-        else:
-            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
-
-    def to_corrected(self, value):
-        result = 0.0
-        if self.exponential:
-            k = (math.log(self._max) - math.log(self._min)) / (self._range / self._step)
-            a = self._max / math.exp(k * self._range)
-            cur_val_step = (1 / (k / math.log(value / a))) / self._range
-            if self.inverted:
-                result = 1 - cur_val_step
-            else:
-                result = cur_val_step
-        else:
-            if self.inverted:
-                result = 1 - ((value - self._min) / self._range)
-            else:
-                result = (value - self._min) / self._range
-        return result
-
-    def from_corrected(self, value):
-        result = 0.0
-        if self.exponential:
-            k = (math.log(self._max)-math.log(self._min))/(self._range / self._step)
-            a = self._max / math.exp(k * self._range)
-            if self.inverted:
-                cur_val_step = (1 - value) * self._range
-                result = a * math.exp(k * cur_val_step)
-            else:
-                cur_val_step = value * self._range
-                result =  a * math.exp(k * cur_val_step)
-        else:
-            if self.inverted:
-                result = ((1 - value) * self._range) + self._min
-            else:
-                result =  (value * self._range) + self._min
-        return round(result)
-
-    def add_mark(self, value, position, markup):
-        self.content_widget.add_mark((value - self._min) / self._range, position, markup)
-
-class GSettingsRangeSpin(Gtk.HBox):
-    def __init__(self, label, schema, key, dep_key, **options):
-        self.key = key
-        self.dep_key = dep_key
-        super(GSettingsRangeSpin, self).__init__()
-        self.label = Gtk.Label.new(label)
-        self.content_widget = Gtk.SpinButton()
-
-        if (label != ""):
-            self.pack_start(self.label, False, False, 2)
-        self.pack_start(self.content_widget, False, False, 2)
-
-        self.settings = Gio.Settings.new(schema)
-
-        _min, _max = self.settings.get_range(self.key)[1]
-        _increment = options.get('adjustment_step', 1)
-
-        self.content_widget.set_range(_min, _max)
-        self.content_widget.set_increments(_increment, _increment)
-        #self.content_widget.set_editable(False)
-        self.content_widget.set_digits(1)
-        self.content_widget.set_value(self.settings.get_double(self.key))
-
-        self.settings.connect("changed::"+self.key, self.on_my_setting_changed)
-        self.content_widget.connect('value-changed', self.on_my_value_changed)
-        self.dependency_invert = False
-        if self.dep_key is not None:
-            if self.dep_key[0] == '!':
-                self.dependency_invert = True
-                self.dep_key = self.dep_key[1:]
-            split = self.dep_key.split('/')
-            self.dep_settings = Gio.Settings.new(split[0])
-            self.dep_key = split[1]
-            self.dep_settings.connect("changed::"+self.dep_key, self.on_dependency_setting_changed)
-            self.on_dependency_setting_changed(self, None)
-
-    def on_my_setting_changed(self, settings, key):
-        value = self.settings.get_double(self.key)
-        if value != self.content_widget.get_value():
-            self.content_widget.set_value(value)
-
-    def on_my_value_changed(self, widget):
-        self.settings.set_double(self.key, self.content_widget.get_value())
-
-    def on_dependency_setting_changed(self, settings, dep_key):
-        if not self.dependency_invert:
-            self.set_sensitive(self.dep_settings.get_boolean(self.dep_key))
-        else:
-            self.set_sensitive(not self.dep_settings.get_boolean(self.dep_key))
-
 class ComboBox(HBoxWidget):
-    def __init__(self, value, description, options):
+    def __init__(self, options, **kwargs):
         self.iters = {}
         for option in options:
             if isinstance(options[option], basestring):
@@ -793,23 +613,18 @@ class ComboBox(HBoxWidget):
                 self.model = Gtk.ListStore(str, float)
             break
         self.content_widget = Gtk.ComboBox.new_with_model(self.model)
-        super(ComboBox, self).__init__(description)
 
-        selected = None
         for option in options:
             iter = self.model.insert_before(None, None)
             self.model.set_value(iter, 0, option)
             self.model.set_value(iter, 1, options[option])
             self.iters[options[option]] = iter
-            if options[option] == value:
-                selected = iter
+
+        super(ComboBox, self).__init__(**kwargs)
 
         renderer_text = Gtk.CellRendererText()
         self.content_widget.pack_start(renderer_text, True)
         self.content_widget.add_attribute(renderer_text, "text", 0)
-
-        if selected is not None:
-            self.content_widget.set_active_iter(selected)
 
         self.content_widget.connect("changed", self.on_value_changed)
 
@@ -825,11 +640,11 @@ class ComboBox(HBoxWidget):
             self.content_widget.set_active(-1)
 
 
-class ColorChooser(Gtk.ColorButton):
-    def __init__(self, value):
+class ColorChooser(Gtk.ColorButton, BaseWidget):
+    def __init__(self, value, **kwargs):
         super(ColorChooser, self).__init__()
+        BaseWidget.__init__(self, **kwargs)
 
-        self.set_color(Gdk.color_parse(value))
         self.connect("color-set", self.on_value_changed)
 
     def on_value_changed(self, widget):
@@ -837,6 +652,3 @@ class ColorChooser(Gtk.ColorButton):
 
     def update_value(self, value):
         self.set_color(Gdk.color_parse(value))
-
-    def update_dependency(self, dependency):
-        self.set_sensitive(dependency)
