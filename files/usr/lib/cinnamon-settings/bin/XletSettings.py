@@ -141,12 +141,7 @@ class XletSetting:
                                                             self.uuid)
             widgets = self.setting_factories[instance_key].widgets
             for widget_key in widgets.keys():
-                if widgets[widget_key].get_indented():
-                    indent = XletSettingsWidgets.IndentedHBox()
-                    indent.add_fill(widgets[widget_key])
-                    self.content_box.pack_start(indent, False, False, 2)
-                else:
-                    self.content_box.pack_start(widgets[widget_key], False, False, 2)
+                self.content_box.pack_start(widgets[widget_key], False, False, 2)
                 if len(widgets[widget_key].dependents) > 0:
                     widgets[widget_key].update_dependents()
             self.current_id = instance_key

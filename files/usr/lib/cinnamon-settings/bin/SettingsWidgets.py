@@ -484,15 +484,26 @@ class CheckButton(Gtk.CheckButton, BaseWidget):
        self.set_active(value)
 
 class HBoxWidget(Gtk.HBox, BaseWidget):
-    def __init__(self, description, **kwargs):
+    #set expand to true to have the content widget take all the width
+    expand = False
+
+    #before initing a HBoxWidget, self.content_widget must be defined
+    def __init__(self, description = "", indent = 0, **kwargs):
         super(HBoxWidget, self).__init__()
         BaseWidget.__init__(self, **kwargs)
+
+        if indent:
+            label = Gtk.Label("\t" * indent)
+            self.pack_start(label, False, False, 2)
 
         if description:
             label = Gtk.Label(description)
             self.pack_start(label, False, False, 2)
 
-        self.pack_start(self.content_widget, False, False, 2)
+        if self.expand:
+            self.pack_start(self.content_widget, True, True, 2)
+        else:
+            self.pack_start(self.content_widget, False, False, 2)
 
 class SpinButton(HBoxWidget):
     def __init__(self, min, max, step, units, page = None, **kwargs):
@@ -652,3 +663,133 @@ class ColorChooser(Gtk.ColorButton, BaseWidget):
 
     def update_value(self, value):
         self.set_color(Gdk.color_parse(value))
+
+class TweenChooser(HBoxWidget):
+    def __init__(self, **kwargs):
+        self.content_widget = BaseChooserButton()
+
+        self.build_menuitem("None", 0, 0)
+
+        row = 1
+        for main in ["Quad", "Cubic", "Quart", "Quint", "Sine", "Expo", "Circ", "Elastic", "Back", "Bounce"]:
+            col = 0
+            for prefix in ["In", "Out", "InOut", "OutIn"]:
+                self.build_menuitem(prefix + main, col, row)
+                col += 1
+            row += 1
+
+        self.content_widget.set_size_request(128, -1)
+
+        super(TweenChooser, self).__init__(**kwargs)
+
+    def build_menuitem(self, name, col, row):
+        menuitem = TweenMenuItem("ease" + name)
+        menuitem.connect("activate", self.change_value)
+        self.content_widget.menu.attach(menuitem, col, col + 1, row, row + 1)
+
+    def bind_time(self, key):
+        self.settings.connect("changed::" + key, self.update_time)
+        self.update_time(self.settings, key)
+
+    def update_time(self, settings, key):
+        time = settings.get_int(key) / 10
+        for item in self.content_widget.menu.get_children():
+            item.duration = time
+
+    def change_value(self, widget):
+        self.apply_value(widget.name)
+
+    def update_value(self, value):
+        self.content_widget.set_label(value)
+
+class TweenMenuItem(Gtk.MenuItem):
+    width = 96
+    height = 48
+
+    state = -1
+    duration = 50
+
+    timer = None
+
+    def __init__(self, name):
+        super(TweenMenuItem, self).__init__()
+
+        self.name = name
+        self.function = getattr(tweenEquations, name)
+
+        self.vbox = Gtk.VBox()
+        self.add(self.vbox)
+
+        box = Gtk.Box()
+        self.vbox.add(box)
+
+        self.graph = Gtk.DrawingArea()
+        box.add(self.graph)
+        self.graph.set_size_request(self.width, self.height)
+        self.graph.connect("draw", self.draw_graph)
+
+        self.arr = Gtk.DrawingArea()
+        box.pack_end(self.arr, False, False, 0)
+        self.arr.set_size_request(5, self.height)
+        self.arr.connect("draw", self.draw_arr)
+
+        self.connect("enter-notify-event", self.start_animation)
+        self.connect("leave-notify-event", self.end_animation)
+
+        label = Gtk.Label()
+        self.vbox.add(label)
+        label.set_text(name)
+
+    def draw_graph(self, widget, ctx):
+        width = self.width - 2.
+        height = self.height / 8.
+
+        context = widget.get_style_context()
+        if self.state == -1:
+            c = context.get_background_color(Gtk.StateFlags.SELECTED)
+        else:
+            c = context.get_color(Gtk.StateFlags.NORMAL)
+        ctx.set_source_rgb(c.red, c.green, c.blue)
+
+        ctx.move_to(1, height * 6)
+        for i in range(int(width)):
+            ctx.line_to(i + 2, self.function(i + 1., height * 6, -height * 4, width))
+        ctx.stroke()
+
+    def draw_arr(self, widget, ctx):
+        if self.state < 0:
+            return
+        height = self.height / 8.
+
+        context = widget.get_style_context()
+        c = context.get_color(Gtk.StateFlags.NORMAL)
+        ctx.set_source_rgb(c.red, c.green, c.blue)
+
+        ctx.arc(5, self.function(self.state, height * 6, -height * 4, self.duration - 1), 5, math.pi / 2, math.pi * 1.5)
+        ctx.fill()
+
+    def start_animation(self, a, b):
+        self.state = 0.
+        self.graph.queue_draw()
+        self.arr.queue_draw()
+
+        self.timer = GObject.timeout_add(400, self.frame)
+
+    def end_animation(self, a, b):
+        if self.timer:
+            GObject.source_remove(self.timer)
+            self.timer = None
+
+        self.state = -1
+        self.graph.queue_draw()
+        self.arr.queue_draw()
+
+    def frame(self):
+        self.timer = None
+        self.state += 1
+
+        if self.state >= self.duration:
+            return
+
+        self.arr.queue_draw()
+        self.timer = GObject.timeout_add(10, self.frame)
