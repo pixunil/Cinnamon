@@ -416,7 +416,7 @@ class ExtensionSidePage (SidePage):
         self.update_list = {}
         self.current_num_updates = 0
 
-        self.spices = Spice_Harvester(self.collection_type, self.window)
+        self.spices = Spice_Harvester(self.collection_type)
 
         # if not self.spices.get_webkit_enabled():
         #     getmore_label.set_sensitive(False)
@@ -425,6 +425,7 @@ class ExtensionSidePage (SidePage):
         if extra_page:
             self.stack.add_titled(extra_page, "extra", extra_page.label)
 
+        self.content_box.pack_end(self.spices, False, False, 2)
         self.content_box.show_all()
 
         if not self.themes:
@@ -871,12 +872,12 @@ class ExtensionSidePage (SidePage):
     def load_spices(self, force=False):
         # if self.spices.get_webkit_enabled():
         self.update_list = {}
-        self.spices.load(self.on_spice_load, force)
+        self.spices.load(self.on_spice_load, self.on_icon_updated, force)
 
     def install_extensions(self):
         if len(self.install_list) > 0:
-            self.spices.install_all(self.install_list, self.install_finished)
-    
+            self.spices.install(self.install_list, self.install_finished)
+
     def install_finished(self, need_restart):
         for row in self.gm_model:
             self.gm_model.set_value(row.iter, 2, 0)
@@ -886,9 +887,10 @@ class ExtensionSidePage (SidePage):
         if need_restart:
             self.show_info(_("Please restart Cinnamon for the changes to take effect"))
 
-    def on_spice_load(self, spicesData):
-        #print "total spices loaded: %d" % len(spicesData)
+    def on_spice_load(self):
+        spicesData = self.spices.index_cache
         self.gm_model.clear()
+        self.iters = {}
         self.install_button.set_sensitive(False)
         for uuid in spicesData:
             extensionData = spicesData[uuid]
@@ -900,38 +902,47 @@ class ExtensionSidePage (SidePage):
             else:
                 self.gm_model.set_value(iter, 1, '<b>%s</b>' % (extensionName))
             self.gm_model.set_value(iter, 2, 0)
-
-            if not self.themes:
-                icon_filename = os.path.basename(extensionData['icon'])
-                w = ROW_SIZE + 5
-                h = ROW_SIZE + 5
-            else:
-                icon_filename = os.path.basename(extensionData['screenshot'])
-                w = -1
-                h = 60
-            if w != -1:
-                w = w * self.window.get_scale_factor()
-            h = h * self.window.get_scale_factor()
-
-            if not os.path.exists(os.path.join(self.spices.get_cache_folder(), icon_filename)):
-                theme = Gtk.IconTheme.get_default()
-                if theme.has_icon("cs-%ss" % (self.collection_type)):
-                    img = theme.load_icon("cs-%ss" % (self.collection_type), h, 0)
-            else:
-                try:
-                    img = GdkPixbuf.Pixbuf.new_from_file_at_size(os.path.join(self.spices.get_cache_folder(), icon_filename), w, h)
-                except:
-                    theme = Gtk.IconTheme.get_default()
-                    if theme.has_icon("cs-%ss" % (self.collection_type)):
-                        img = theme.load_icon("cs-%ss" % (self.collection_type), h, 0)
-
-            surface = Gdk.cairo_surface_create_from_pixbuf (img, self.window.get_scale_factor(), self.window.get_window())
-            wrapper = SurfaceWrapper(surface)
-
-            self.gm_model.set_value(iter, 3, wrapper)
+            self.make_icon_wrapper(extensionData, iter)
             self.gm_model.set_value(iter, 4, int(extensionData['score']))
             self.gm_model.set_value(iter, 5, extensionData['name'])
             self.gm_model.set_value(iter, 6, int(extensionData['last_edited']))
+            self.iters[uuid] = iter
+
+    def on_icon_updated(self, uuid):
+        if uuid in self.iters:
+            iter = self.iters[uuid]
+            data = self.spices.index_cache[uuid]
+            self.make_icon_wrapper(data, iter)
+
+    def make_icon_wrapper(self, data, iter):
+        if not self.themes:
+            icon_filename = os.path.basename(data['icon'])
+            w = ROW_SIZE + 5
+            h = ROW_SIZE + 5
+        else:
+            icon_filename = os.path.basename(data['screenshot'])
+            w = -1
+            h = 60
+        if w != -1:
+            w = w * self.window.get_scale_factor()
+        h = h * self.window.get_scale_factor()
+
+        if not os.path.exists(os.path.join(self.spices.get_cache_folder(), icon_filename)):
+            theme = Gtk.IconTheme.get_default()
+            if theme.has_icon("cs-%ss" % (self.collection_type)):
+                img = theme.load_icon("cs-%ss" % (self.collection_type), h, 0)
+        else:
+            try:
+                img = GdkPixbuf.Pixbuf.new_from_file_at_size(os.path.join(self.spices.get_cache_folder(), icon_filename), w, h)
+            except:
+                theme = Gtk.IconTheme.get_default()
+                if theme.has_icon("cs-%ss" % (self.collection_type)):
+                    img = theme.load_icon("cs-%ss" % (self.collection_type), h, 0)
+
+        surface = Gdk.cairo_surface_create_from_pixbuf (img, self.window.get_scale_factor(), self.window.get_window())
+        wrapper = SurfaceWrapper(surface)
+
+        self.gm_model.set_value(iter, 3, wrapper)
 
     def enable_extension(self, uuid, name, version_check = True):
         if not version_check:
@@ -1021,10 +1032,7 @@ Please contact the developer.""")
         if not self.show_prompt(_("Are you sure you want to completely remove %s?") % (obj)):
             return
         self.disable_extension(uuid, name, 0)
-        self.spices.uninstall(uuid, name, schema_filename, self.on_uninstall_finished)
-    
-    def on_uninstall_finished(self, uuid):
-        self.load_extensions()
+        self.spices.uninstall(uuid, name, schema_filename, self.load_extensions)
 
     def on_page_changed(self, *args):
         name = self.stack.get_visible_child_name()
