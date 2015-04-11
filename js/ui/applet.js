@@ -8,7 +8,6 @@ const Main = imports.ui.main;
 const DND = imports.ui.dnd;
 const Clutter = imports.gi.Clutter;
 const AppletManager = imports.ui.appletManager;
-const Gtk = imports.gi.Gtk;
 const Util = imports.misc.util;
 const Pango = imports.gi.Pango;
 const Mainloop = imports.mainloop;

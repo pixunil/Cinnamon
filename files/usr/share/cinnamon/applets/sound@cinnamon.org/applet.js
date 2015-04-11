@@ -563,7 +563,7 @@ Player.prototype = {
             }
         }));
         // Some players say they "CanSeek" but don't actually give their position over dbus (spotify for instance)
-        for (i = 0; i < players_without_seek_support.length; i++) {
+        for (let i = 0; i < players_without_seek_support.length; i++) {
             if (players_without_seek_support[i] === this._name) {
                 can_seek = false;
                 break;

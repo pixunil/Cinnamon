@@ -377,7 +377,6 @@ SpicesAboutDialog.prototype = {
             
             //description
             let desc = new St.Label({text: metadata.description, style_class: "about-description"});
-            let dText = desc.clutter_text;
             topTextBox.add_actor(desc);
             
             /*optional content*/

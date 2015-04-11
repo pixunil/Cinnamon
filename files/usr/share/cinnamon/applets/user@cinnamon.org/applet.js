@@ -10,7 +10,6 @@ const Gio = imports.gi.Gio
 const AccountsService = imports.gi.AccountsService;
 const GnomeSession = imports.misc.gnomeSession;
 const ScreenSaver = imports.misc.screenSaver;
-const Main = imports.ui.main;
 const Panel = imports.ui.panel;
 const Settings = imports.ui.settings;
 

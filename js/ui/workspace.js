@@ -10,7 +10,6 @@ const Cinnamon = imports.gi.Cinnamon;
 const St = imports.gi.St;
 const Signals = imports.signals;
 
-const DND = imports.ui.dnd;
 const Lightbox = imports.ui.lightbox;
 const Main = imports.ui.main;
 const Overview = imports.ui.overview;
@@ -933,7 +932,7 @@ WorkspaceMonitor.prototype = {
         let [x, y, width, height] = this._getSlotGeometry(slot);
 
         let rect = metaWindow.get_outer_rect();
-        let buttonOuterHeight, captionHeight;
+        let buttonOuterHeight;
         let buttonOuterWidth = 0;
 
         if (this._windows.length) {

@@ -73,7 +73,6 @@ const ThemeManager = imports.ui.themeManager;
 const Magnifier = imports.ui.magnifier;
 const XdndHandler = imports.ui.xdndHandler;
 const StatusIconDispatcher = imports.ui.statusIconDispatcher;
-const Util = imports.misc.util;
 const Keybindings = imports.ui.keybindings;
 const Settings = imports.ui.settings;
 const Systray = imports.ui.systray;
@@ -81,13 +80,8 @@ const Systray = imports.ui.systray;
 const DEFAULT_BACKGROUND_COLOR = new Clutter.Color();
 DEFAULT_BACKGROUND_COLOR.from_pixel(0x2266bbff);
 
-const LAYOUT_TRADITIONAL = "traditional";
-const LAYOUT_FLIPPED = "flipped";
-const LAYOUT_CLASSIC = "classic";
-
 const CIN_LOG_FOLDER = GLib.get_home_dir() + '/.cinnamon/';
 
-let panel = null;
 let soundManager = null;
 let backgroundManager = null;
 let slideshowManager = null;

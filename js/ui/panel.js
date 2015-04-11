@@ -282,7 +282,6 @@ PanelManager.prototype = {
      */
     movePanel: function(monitorIndex, bottomPosition) {
         let list = global.settings.get_strv("panels-enabled");
-        let i = -1;
 
         for (let i in list) {
             if (list[i].split(":")[0] == this.moveId) {
