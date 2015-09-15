@@ -76,25 +76,20 @@ TooltipBase.prototype = {
     },
 
     _onMotionEvent: function(actor, event) {
-        if (this._showTimer) {
-            Mainloop.source_remove(this._showTimer);
-            this._showTimer = null;
-        }
+        this.signals.removeTimeout("timer");
 
         if (!this.visible) {
-            this._showTimer = Mainloop.timeout_add(300, Lang.bind(this, this._onTimerComplete));
+            this.signals.addTimeout("timer", 300, this._onTimerComplete);
             this.mousePosition = event.get_coords();
         }
     },
 
     _onEnterEvent: function(actor, event) {
-        this._showTimer = Mainloop.timeout_add(300, Lang.bind(this, this._onTimerComplete));
+        this.signals.addTimeout("timer", 300, this._onTimerComplete);
         this.mousePosition = event.get_coords();
     },
 
     _onTimerComplete: function(){
-        this._showTimer = null;
-
         if (!this.preventShow)
             this.show();
 
@@ -102,10 +97,7 @@ TooltipBase.prototype = {
     },
 
     _hide: function(actor, event) {
-        if (this._showTimer) {
-            Mainloop.source_remove(this._showTimer);
-            this._showTimer = null;
-        }
+        this.signals.removeTimeout("timer");
         this.hide();
     },
 
@@ -115,11 +107,7 @@ TooltipBase.prototype = {
      * Destroys the tooltip.
      */
     destroy: function() {
-        if (this._showTimer) {
-            Mainloop.source_remove(this._showTimer);
-            this._showTimer = null;
-        }
-        this.signals.disconnectAllSignals();
+        this.signals.finalize();
         this._destroy();
     }
 }

@@ -210,15 +210,9 @@ MyApplet.prototype = {
             this._insertStatusItem(icon, -1);
 
             let timerId = 0;
-            let i = 0;
-            timerId = Mainloop.timeout_add(500, Lang.bind(this, function() {
+            Mainloop.timeout_add(500, Lang.bind(this, function() {
                 this.resize_icon(icon, role);
-                i++;
-                if (i == 2) {
-                    Mainloop.source_remove(timerId);
-                }
             }));
-
         } catch (e) {
             global.logError(e);
         }
