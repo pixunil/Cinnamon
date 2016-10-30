@@ -1628,6 +1628,10 @@ NMDeviceWireless.prototype = {
 
             this._createNetworkItem(apObj, j + activeOffset);
         }
+
+        let requestScanItem = new PopupMenu.PopupMenuItem(_("Scan"));
+        requestScanItem.activate = () => this.device.request_scan_simple(() => {});
+        this.section.addMenuItem(requestScanItem);
     },
 };
 
